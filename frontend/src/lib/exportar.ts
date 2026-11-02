@@ -87,22 +87,33 @@ export async function exportarPdf<T>(cab: Cabecalho, colunas: ColunaExportacao<T
   const [{ jsPDF }, { autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
   const meta = linhasCabecalho(cab)
-  doc.setFontSize(12)
-  doc.text(meta[0], 32, 36)
+  const largura = doc.internal.pageSize.getWidth()
+  const altura = doc.internal.pageSize.getHeight()
+  // Cabeçalho institucional (seção 25).
+  doc.setFillColor(29, 78, 158)
+  doc.rect(0, 0, largura, 22, 'F')
+  doc.setTextColor(255)
   doc.setFontSize(8)
-  meta.slice(1).forEach((t, i) => doc.text(doc.splitTextToSize(t, 770), 32, 52 + i * 11))
+  doc.text('GOVERNO DE RORAIMA · SELC — Sistema de Inteligência de Compras Públicas', 32, 14)
+  doc.setTextColor(20)
+  doc.setFontSize(12)
+  doc.text(meta[0], 32, 42)
+  doc.setFontSize(8)
+  meta.slice(1).forEach((t, i) => doc.text(doc.splitTextToSize(t, 770), 32, 58 + i * 11))
   autoTable(doc, {
-    startY: 52 + (meta.length - 1) * 11 + 8,
+    startY: 58 + (meta.length - 1) * 11 + 8,
     head: [colunas.map((c) => c.titulo)],
     body: linhas.map((l) => colunas.map((c) => c.texto(l))),
     styles: { fontSize: colunas.length > 10 ? 6 : 7, cellPadding: 3, overflow: 'linebreak' },
     headStyles: { fillColor: [29, 78, 158], textColor: 255 },
     columnStyles: Object.fromEntries(colunas.map((c, i) => [i, { halign: c.tipo === 'texto' || c.tipo === 'data' ? 'left' : 'right' }])),
-    margin: { left: 32, right: 32 },
+    margin: { left: 32, right: 32, top: 32, bottom: 34 },
     didDrawPage: () => {
       const n = doc.getNumberOfPages()
       doc.setFontSize(7)
-      doc.text(`Página ${n}`, doc.internal.pageSize.getWidth() - 70, doc.internal.pageSize.getHeight() - 16)
+      doc.setTextColor(90)
+      doc.text('Desenvolvido por NEXMIND · www.nexmind.net.br', 32, altura - 16)
+      doc.text(`Página ${n}`, largura - 70, altura - 16)
     },
   })
   doc.save(nomeArquivo(cab.titulo, 'pdf'))
