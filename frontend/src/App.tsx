@@ -22,6 +22,10 @@ const Catalogo = lazy(() => import('@/pages/Catalogo').then((m) => ({ default: m
 const ComprasClasse = lazy(() => import('@/pages/ComprasClasse').then((m) => ({ default: m.ComprasClasse })))
 const AnaliseTotal = lazy(() => import('@/pages/AnaliseTotal').then((m) => ({ default: m.AnaliseTotal })))
 const AnalisePrecos = lazy(() => import('@/pages/AnalisePrecos').then((m) => ({ default: m.AnalisePrecos })))
+const Pca = lazy(() => import('@/pages/Pca').then((m) => ({ default: m.Pca })))
+const Contratos = lazy(() => import('@/pages/Contratos').then((m) => ({ default: m.Contratos })))
+const Relatorios = lazy(() => import('@/pages/Relatorios').then((m) => ({ default: m.Relatorios })))
+const Administracao = lazy(() => import('@/pages/Administracao').then((m) => ({ default: m.Administracao })))
 const aguardandoPagina = <div className="flex h-40 items-center justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
 
 /** Módulos já entregues; os demais exibem a página de módulo planejado. */
@@ -39,6 +43,10 @@ const PAGINAS: Record<string, ReactElement> = {
   'compras-classe': <ComprasClasse />,
   'analise-total': <AnaliseTotal />,
   'analise-precos': <AnalisePrecos />,
+  pca: <Pca />,
+  contratos: <Contratos />,
+  relatorios: <Relatorios />,
+  administracao: <Administracao />,
 }
 import { MODULOS } from '@/modulos'
 

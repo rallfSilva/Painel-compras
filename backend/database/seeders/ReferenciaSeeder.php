@@ -240,6 +240,10 @@ class ReferenciaSeeder extends Seeder
             ['precos.alerta_cv_pct', '35', 'Coeficiente de variação (%) a partir do qual a dispersão dos preços é sinalizada para análise'],
             ['precos.alerta_aumento_pct', '25', 'Aumento da mediana de um ano para o seguinte (%) a partir do qual o aumento é sinalizado para análise'],
             ['compras.recorrencia_minima', '3', 'Número mínimo de processos com o mesmo item e unidade para considerar a compra recorrente'],
+            ['contratos.prazos_alerta', '30,60,90', 'Prazos, em dias, das faixas de contratos próximos do vencimento (separados por vírgula)'],
+            ['contratos.limite_acrescimo', '25', 'Limite legal de acréscimo sobre o valor inicial do contrato (%), Lei 14.133/2021, art. 125'],
+            ['contratos.limite_acrescimo_reforma', '50', 'Limite de acréscimo em reforma de edifício ou de equipamento (%), Lei 14.133/2021, art. 125'],
+            ['contratos.alerta_proximo_limite', '80', 'Percentual do limite legal a partir do qual o acréscimo é sinalizado para análise'],
             ['fornecedores.limite_concentracao', '30', 'Percentual do valor contratado de uma unidade, por um único fornecedor, a partir do qual a concentração é sinalizada para análise'],
         ] as [$k, $v, $d]) {
             DB::table('configuracoes')->updateOrInsert(['chave' => $k], ['valor' => $v, 'descricao' => $d, 'created_at' => $agora, 'updated_at' => $agora]);

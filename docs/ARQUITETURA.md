@@ -47,7 +47,7 @@ Decisões principais:
 - **Ausência ≠ zero**: valores não informados ficam `NULL` e a API devolve `null` ("Não informado").
 - **Dados fictícios separados**: `ficticio = true`. A interface mostra um aviso enquanto eles existirem e `php artisan sic:limpar-demonstrativos` os remove.
 
-### 2.2 Tabelas (Etapas 1 a 3B)
+### 2.2 Tabelas (Etapas 1 a 4)
 
 | Grupo | Tabelas |
 |---|---|
@@ -65,6 +65,8 @@ Decisões principais:
 Ajuste em relação à lista do prompt: `licitacoes`, `licitacoes_resultados` e `itens_adjudicados` foram unificadas em `processos` e `processos_itens`. Uma licitação é um processo cuja sistemática é do tipo `LICITACAO`, e o item adjudicado é a linha de `processos_itens` com o resultado. Isso evita guardar o mesmo valor em duas tabelas. As tabelas do PCA (`pca*`) e de preços (`precos_referencias`, `historico_precos`) entram nas Etapas 3 e 4.
 
 Na Etapa 3B entra a tabela `itens_equivalencias` (item, equivalente, status PROPOSTA/VALIDADA/REJEITADA, justificativa, especificações diferentes, quem propôs, quem validou e quando). A migração preenche `itens_catalogo.descricao_normalizada` dos itens existentes.
+
+Na Etapa 4 entram as tabelas do PCA: `pca` (exercício e órgão, situação, aprovação, link do PNCP), `pca_demandas` (todos os campos da seção 20: unidade requisitante, número da demanda, código da contratação, objeto, necessidade, categoria, grupo/classe, quantidade e valor estimados, data pretendida, prioridade, situação do planejamento, responsável, processo SEI e situação de execução), `pca_itens` (itens do catálogo previstos) e `pca_execucao` (vínculo da demanda com os processos que a executam).
 
 ### 2.3 Relacionamentos principais
 
@@ -121,6 +123,13 @@ Todas estão no glossário (`glossario_indicadores`, endpoint `/api/glossario`) 
 - **Concentração**: HHI = Σ (participação % de cada fornecedor)², de 0 a 10.000, no total e por classe; a classe é sinalizada quando um fornecedor tem `fornecedores.limite_concentracao` (30%) ou mais.
 - **Análise de preços**: referência = valor unitário adjudicado de itens com resultado, do mesmo item **e** unidade de fornecimento, na janela `precos.janela_meses` (24) até a data de referência e, quando informada, na faixa de quantidade. Estatísticas: mínimo, máximo, média, mediana, desvio padrão amostral, CV = desvio / média × 100 e variação = (máx − mín) / mín × 100. Alertas: preço a `precos.alerta_mediana_pct` (30%) ou mais da mediana, CV ≥ `precos.alerta_cv_pct` (35%), menos de `precos.minimo_observacoes` (3) referências e mediana anual que sobe `precos.alerta_aumento_pct` (25%) ou mais. Todo alerta traz o aviso de que pede análise humana e não constitui conclusão sobre sobrepreço. A comparação estadual × nacional mostra "fonte não integrada" até a Etapa 5.
 
+#### Etapa 4 (seções 20, 22, 25 e 29)
+
+- **PCA**: planejado = Σ valor estimado das demandas não excluídas do plano; contratado = Σ valor contratado dos itens dos processos vinculados em `pca_execucao`; % executado = contratado / planejado × 100. *Atrasada* = data pretendida já passou e a demanda não foi concluída nem cancelada. *Fora do PCA* = processos com os filtros atuais sem vínculo com demanda (pede análise, não indica irregularidade). O PCA segue os filtros de período (como exercício), órgão/unidade e grupo/classe e o acesso por órgão.
+- **Contratos**: valor atualizado = valor inicial + Σ aditivos de valor ou mistos (quando a fonte não traz o valor atualizado). % acréscimo = Σ aditivos de valor / valor inicial × 100, comparado ao limite do art. 125 da Lei 14.133/2021 (`contratos.limite_acrescimo` = 25%, `contratos.limite_acrescimo_reforma` = 50%). O contrato é *sinalizado* a partir de `contratos.alerta_proximo_limite` (80%) do limite e marcado como *acima do limite* quando o ultrapassa. Prazos de vencimento em `contratos.prazos_alerta` (30, 60, 90 dias), contados a partir de hoje, independentemente do período. Empenhado, liquidado e pago aparecem quando a fonte financeira estadual for integrada (Etapa 5); até lá a tela informa "fonte não integrada".
+- **Relatórios**: 18 relatórios (geral, órgão, fornecedor, modalidade, economia, MPE, município, natureza, classe, itens, atas, saldo de atas, PCA, preços, desertos/fracassados, contratos, amparo legal e PNAE), gerados no servidor com os filtros globais, até 5.000 linhas, exportados em Excel, CSV e PDF (cabeçalho institucional, filtros aplicados, numeração de páginas e rodapé "Desenvolvido por NEXMIND"). Cada geração é registrada em `logs_auditoria` (`relatorio.gerar`). Exige `relatorios.exportar`.
+- **Administração**: cadastros e classificações por um registro único de recursos (`CadastrosService::RECURSOS`) com validação, permissão própria por recurso e histórico antes/depois em `historico_alteracoes`. Usuários: o usuário não desativa a si mesmo; perfis restritos por órgão exigem ao menos um órgão; senha com 8+ caracteres, letras e números; a troca de senha encerra as outras sessões. Perfis: o Administrador Geral mantém todas as permissões e ninguém tira do próprio perfil a permissão de gerenciar usuários. Logs de auditoria com filtro por tipo de ação.
+
 ## 3. Estrutura de diretórios
 
 ```
@@ -128,13 +137,17 @@ painel-compras/
 ├── backend/                         Laravel 12
 │   ├── app/
 │   │   ├── Console/Commands/        sic:limpar-demonstrativos
-│   │   ├── Http/Controllers/Api/    Auth, Meta, Filtro, Dashboard, Compras, Processo, Fornecedor, Orgao
+│   │   ├── Http/Controllers/Api/    Auth, Meta, Filtro, Dashboard, Compras, Processo, Fornecedor, Orgao, Inteligencia, Analise, Planejamento, Admin
 │   │   ├── Http/Middleware/         ExigePermissao, CabecalhosSeguranca
 │   │   ├── Models/                  um model por tabela de domínio
 │   │   ├── Services/
 │   │   │   ├── Filtros/             FiltrosAplicados, FiltroService, OpcoesFiltroService
 │   │   │   ├── Indicadores/         IndicadorService, DashboardService, RegistrosService, OpcoesCalculo
 │   │   │   ├── Compras/             ComprasTotais, Panorama, Processos, Itens, Fornecedores, Orgaos
+│   │   │   ├── Inteligencia/        painéis das Etapas 3A e 3B
+│   │   │   ├── Planejamento/        PcaService, ContratosService
+│   │   │   ├── Relatorios/          RelatoriosService (18 relatórios)
+│   │   │   ├── Admin/               CadastrosService, UsuariosService
 │   │   │   ├── AgregacaoService.php
 │   │   │   └── Configuracoes.php
 │   │   └── Support/                 Rastreabilidade, FasesProcesso, DadosPessoais
@@ -168,7 +181,7 @@ painel-compras/
 | 1. Fundação | Estrutura, banco, autenticação e perfis, layout institucional (cabeçalho de período, rodapé NEXMIND, modo escuro), 13 filtros globais, Dashboard Geral com indicadores, gráficos e detalhamento | Entregue |
 | 2. Compras | Compras Totais (10 gráficos e ranking), Panorama por unidade contratante (14 colunas, exportação Excel/CSV/PDF), Licitações e Processos com fases e itens, Fornecedores (ranking, concentração, ficha), Órgãos e Unidades, filtro cruzado | Entregue |
 | 3A. Inteligência | Painéis geográfico (mapas de RR e do Brasil, região, município), por natureza/classe (ranking dos 50 itens, evolução de preços) e por sistemática (equivalência entre regimes), MPE, Alimentos/PNAE, Licitações para RP (12 indicadores, 8 gráficos), Aquisições por RP (14 indicadores, 3 tabelas cruzadas, sinalizadores) | Entregue |
-| 3B. Inteligência | Itens Adjudicados, Catálogo (normalização, duplicidades, semelhantes, equivalências validadas, histórico), Compras por Classe, Análise do Total Comprado (árvore de decomposição, unidades, amparo legal, rankings, recorrência, concentração, variação de preços), Análise de Preços | **Entregue neste PR** |
-| 4. Planejamento e Contratos | PCA, Contratos e aditivos, Relatórios (Excel, CSV, PDF com rodapé NEXMIND), Administração | |
+| 3B. Inteligência | Itens Adjudicados, Catálogo (normalização, duplicidades, semelhantes, equivalências validadas, histórico), Compras por Classe, Análise do Total Comprado (árvore de decomposição, unidades, amparo legal, rankings, recorrência, concentração, variação de preços), Análise de Preços | Entregue |
+| 4. Planejamento e Contratos | PCA (demandas, planejado × contratado, atrasadas, fora do PCA), Contratos (vencimentos 30/60/90, aditivos, alerta de acréscimo do art. 125), 18 Relatórios gerenciais (Excel, CSV, PDF com cabeçalho institucional e rodapé NEXMIND), Administração (cadastros, classificações, parâmetros, usuários, perfis e permissões, logs) | **Entregue neste PR** |
 | 5. Integração | Importação XLSX/CSV/JSON com fila, PNCP, Compras.gov.br, sistema financeiro estadual | |
 | 6. IA | Consultas em linguagem natural com provedor configurável (local ou API opcional) | |

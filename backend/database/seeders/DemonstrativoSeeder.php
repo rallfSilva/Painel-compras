@@ -33,7 +33,99 @@ class DemonstrativoSeeder extends Seeder
         $itens = $this->catalogo();
         $fornecedores = $this->fornecedores();
         $this->processos($unidades, $itens, $fornecedores);
+        $this->aditivos();
+        $this->planoContratacoes();
         app(AgregacaoService::class)->recalcular();
+    }
+
+    /** Aditivos fictícios de prazo e de valor; alguns passam do limite de 25% para exercitar o sinalizador. */
+    private function aditivos(): void
+    {
+        $nomes = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Fábio', 'Gabriela', 'Hugo'];
+        foreach (DB::table('contratos')->orderBy('id')->get(['id', 'valor_inicial', 'vigencia_fim', 'data_assinatura', 'situacao']) as $c) {
+            $acrescimo = 0.0;
+            $fim = CarbonImmutable::parse($c->vigencia_fim);
+            if (mt_rand(1, 100) <= 35) {
+                $n = mt_rand(1, 2);
+                for ($k = 1; $k <= $n; $k++) {
+                    $tipo = ['PRAZO', 'VALOR', 'MISTO'][mt_rand(0, 2)];
+                    $valor = $tipo === 'PRAZO' ? null : round((float) $c->valor_inicial * mt_rand(3, 18) / 100, 2);
+                    $novoFim = $tipo === 'VALOR' ? null : $fim->addMonths(mt_rand(3, 12));
+                    $acrescimo += $valor ?? 0;
+                    $fim = $novoFim ?? $fim;
+                    DB::table('contratos_aditivos')->insert(['contrato_id' => $c->id, 'numero' => sprintf('%dº TA', $k), 'tipo' => $tipo, 'valor' => $valor,
+                        'nova_vigencia_fim' => $novoFim, 'data_assinatura' => CarbonImmutable::parse($c->data_assinatura)->addMonths(3 * $k),
+                        'justificativa' => 'Aditivo demonstrativo (dado fictício).', 'created_at' => $this->agora, 'updated_at' => $this->agora]);
+                }
+            }
+            DB::table('contratos')->where('id', $c->id)->update([
+                'valor_atualizado' => round((float) $c->valor_inicial + $acrescimo, 2), 'vigencia_fim' => $fim->toDateString(),
+                'situacao' => $fim->lessThan($this->agora) ? 'ENCERRADO' : $c->situacao,
+                'gestor' => $nomes[mt_rand(0, 7)].' Gestor (fictício)', 'fiscal' => $nomes[mt_rand(0, 7)].' Fiscal (fictício)',
+            ]);
+        }
+    }
+
+    /**
+     * PCA fictício de 2024 a 2026: parte das demandas é ligada a processos reais da base demonstrativa
+     * (execução), outras ficam não iniciadas, atrasadas ou canceladas, para exercitar os indicadores.
+     */
+    private function planoContratacoes(): void
+    {
+        $hoje = $this->agora->startOfDay();
+        $orgaos = DB::table('orgaos')->orderBy('id')->pluck('id');
+        $classes = DB::table('classes_materiais')->get(['id', 'grupo_id', 'nome']);
+        $situacao = ['CONCLUIDO' => 'CONCLUIDA', 'EM_ANDAMENTO' => 'EM_ANDAMENTO', 'DESERTO' => 'EM_ANDAMENTO', 'FRACASSADO' => 'EM_ANDAMENTO', 'REVOGADO' => 'CANCELADA', 'ANULADO' => 'CANCELADA'];
+        foreach ([2024, 2025, 2026] as $ano) {
+            foreach ($orgaos as $orgao) {
+                $pca = DB::table('pca')->insertGetId(['exercicio' => $ano, 'orgao_id' => $orgao, 'situacao' => 'PUBLICADO',
+                    'data_aprovacao' => sprintf('%d-12-15', $ano - 1)] + $this->base());
+                $unidades = DB::table('unidades_compradoras')->where('orgao_id', $orgao)->pluck('id')->all();
+                $processos = DB::table('processos as p')->join('unidades_compradoras as uc', 'uc.id', '=', 'p.unidade_compradora_id')
+                    ->where('uc.orgao_id', $orgao)->where('p.ano', $ano)->inRandomOrder(mt_rand())->limit(30)
+                    ->get(['p.id', 'p.objeto', 'p.data_abertura', 'p.situacao', 'p.valor_estimado', 'p.numero_processo_sei', 'p.unidade_compradora_id',
+                        DB::raw('(SELECT MIN(ic.classe_id) FROM processos_itens pi JOIN itens_catalogo ic ON ic.id = pi.item_catalogo_id WHERE pi.processo_id = p.id) AS classe_id')]);
+                $seq = 0;
+                foreach ($processos as $p) {
+                    if (mt_rand(1, 100) > 75) {
+                        continue;
+                    }
+                    $seq++;
+                    $classe = $classes->firstWhere('id', $p->classe_id);
+                    $d = DB::table('pca_demandas')->insertGetId($this->demanda($pca, $ano, $seq, $p->unidade_compradora_id, $classe, [
+                        'objeto' => $p->objeto, 'valor_estimado' => round((float) $p->valor_estimado * mt_rand(85, 120) / 100, 2),
+                        'data_pretendida' => CarbonImmutable::parse($p->data_abertura)->subDays(mt_rand(-20, 45))->toDateString(),
+                        'processo_sei' => $p->numero_processo_sei, 'situacao_execucao' => $situacao[$p->situacao] ?? 'EM_ANDAMENTO',
+                    ]));
+                    DB::table('pca_execucao')->insert(['demanda_id' => $d, 'processo_id' => $p->id, 'created_at' => $this->agora, 'updated_at' => $this->agora]);
+                }
+                // Demandas sem processo: não iniciadas (algumas já atrasadas) e canceladas.
+                for ($k = 0, $n = mt_rand(2, 6); $k < $n; $k++) {
+                    $seq++;
+                    $classe = $classes->random();
+                    $data = CarbonImmutable::create($ano, mt_rand(1, 12), mt_rand(1, 28));
+                    DB::table('pca_demandas')->insert($this->demanda($pca, $ano, $seq, $unidades ? $unidades[array_rand($unidades)] : null, $classe, [
+                        'objeto' => 'Aquisição planejada de '.mb_strtolower($classe->nome).' (dado fictício)',
+                        'valor_estimado' => mt_rand(50, 4000) * 1000, 'data_pretendida' => $data->toDateString(),
+                        'situacao_execucao' => mt_rand(1, 100) <= 15 ? 'CANCELADA' : 'NAO_INICIADA',
+                        'situacao_planejamento' => $data->lessThan($hoje) && mt_rand(1, 100) <= 20 ? 'REPROGRAMADA' : 'APROVADA',
+                    ]));
+                }
+            }
+        }
+    }
+
+    private function demanda(int $pca, int $ano, int $seq, ?int $unidade, ?object $classe, array $dados): array
+    {
+        $grupoTipo = $classe ? DB::table('grupos_materiais')->where('id', $classe->grupo_id)->value('tipo') : 'M';
+
+        return $dados + [
+            'pca_id' => $pca, 'unidade_requisitante_id' => $unidade, 'numero_demanda' => sprintf('%d/%04d', $ano, $seq),
+            'codigo_contratacao' => sprintf('PCA-%d-%d-%04d', $ano, $pca, $seq), 'descricao_necessidade' => 'Necessidade demonstrativa (dado fictício).',
+            'categoria' => $grupoTipo === 'S' ? ($classe && DB::table('grupos_materiais')->where('id', $classe->grupo_id)->value('nome') === 'OBRAS' ? 'OBRA' : 'SERVICO') : 'MATERIAL',
+            'grupo_id' => $classe?->grupo_id, 'classe_id' => $classe?->id, 'prioridade' => ['ALTA', 'MEDIA', 'MEDIA', 'BAIXA'][mt_rand(0, 3)],
+            'situacao_planejamento' => $dados['situacao_planejamento'] ?? 'APROVADA', 'responsavel' => 'Responsável demonstrativo',
+        ] + $this->base();
     }
 
     private function base(): array

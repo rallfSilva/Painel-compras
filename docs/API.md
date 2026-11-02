@@ -120,3 +120,28 @@ Todas aceitam os filtros globais. Linhas agrupadas trazem `filtro` e `chave` par
 | GET | `/inteligencia/precos?janela_meses=` | `dashboard.ver` | Resumo e itens com maior dispersão de preço (`janela_meses=0` = todo o histórico). |
 | GET | `/inteligencia/precos/itens?busca=` | `dashboard.ver` | Busca de itens com preço registrado, por unidade. |
 | GET | `/inteligencia/precos/itens/{id}?unidade_id=&janela_meses=&quantidade_min=&quantidade_max=` | `registros.ver` | Estatísticas, evolução, comparação por órgão, município, fornecedor e ano, estadual × nacional, alertas e referências. |
+
+## Planejamento, contratos e relatórios (Etapa 4)
+
+Todas aceitam os parâmetros de filtro globais.
+
+| Método e rota | Permissão | Descrição |
+|---|---|---|
+| `GET /pca` | `dashboard.ver` | Indicadores do PCA (planejado, contratado, % executado, diferença, demandas por situação, atrasadas), comparação por órgão, categoria, classe e exercício e contratações fora do PCA |
+| `GET /pca/demandas` | `registros.ver` | Demandas paginadas com todos os campos da seção 20, contratado, % executado, `atrasada` e processo vinculado. Locais: `busca`, `situacao[]` (NAO_INICIADA, EM_ANDAMENTO, CONCLUIDA, CANCELADA), `ordem`, `direcao`, `pagina`, `por_pagina` |
+| `GET /contratos/painel` | `dashboard.ver` | Vigentes, valor vigente, aditivos, acréscimo médio, sinalizados, vencendo em 30/60/90 dias, vencimentos por mês, por órgão e por situação, parâmetros do alerta |
+| `GET /contratos` | `registros.ver` | Contratos paginados com valor atualizado, % acréscimo, `sinal_acrescimo` (ACIMA, PROXIMO), `dias_para_vencer`. Locais: `busca`, `situacao[]`, `vencendo_em` (dias), `sinalizados=1` |
+| `GET /contratos/{id}` | `registros.ver` | Contrato com aditivos, itens e execução financeira (`null` enquanto a fonte não for integrada) |
+| `GET /relatorios` | `dashboard.ver` | Lista dos 18 relatórios |
+| `GET /relatorios/{codigo}` | `relatorios.exportar` | Relatório com `colunas` (id, título, tipo) e `linhas`, até 5.000 (`limitado`, `total_linhas`). Registrado nos logs de auditoria |
+
+## Administração (Etapa 4)
+
+| Método e rota | Permissão | Descrição |
+|---|---|---|
+| `GET /admin` | autenticado | Cadastros que o usuário pode gerenciar (campos e opções), acesso a usuários/logs e resumo |
+| `GET /admin/cadastros/{recurso}` | do recurso | Registros paginados; `busca`; `com_opcoes=1` traz as opções dos campos de referência |
+| `POST /admin/cadastros/{recurso}` · `PUT /admin/cadastros/{recurso}/{id}` · `DELETE …/{id}` | do recurso | Inclusão, alteração e exclusão com validação e histórico. Recursos: unidades-superiores, orgaos, unidades-compradoras, fornecedores (`cadastros.gerenciar`); regimes-legais, modalidades, sistematicas, formas-aquisicao, amparos-legais, naturezas, subelementos, equivalencias-regimes (`classificacoes.gerenciar`); integracoes (`integracoes.gerenciar`); configuracoes (`configuracoes.gerenciar`, só o valor) |
+| `GET /admin/usuarios` · `POST` · `PUT /admin/usuarios/{id}` | `usuarios.gerenciar` | Usuários, perfis e órgãos; inclusão e alteração (`nome`, `email`, `perfil_id`, `ativo`, `orgaos[]`, `senha`) |
+| `GET /admin/perfis` · `PUT /admin/perfis/{id}` | `usuarios.gerenciar` | Matriz de perfis × permissões; `permissoes[]` com os códigos |
+| `GET /admin/logs` | `logs.ver` | Logs de auditoria paginados; `acao` (prefixo), `usuario_id`, `busca` |

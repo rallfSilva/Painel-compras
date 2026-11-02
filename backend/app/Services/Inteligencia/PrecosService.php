@@ -92,6 +92,20 @@ class PrecosService
         ];
     }
 
+    /** Estatísticas de todos os itens e unidades com preço na janela (relatório de análise de preços). */
+    public function itens(FiltrosAplicados $f, ?int $janelaMeses = null): array
+    {
+        $janela = $janelaMeses ?? $this->parametros()['janela'];
+
+        return $this->base($f, $janela ?: null)
+            ->leftJoin('unidades_medida as um', 'um.id', '=', 'pi.unidade_medida_id')
+            ->get(['pi.item_catalogo_id as item_id', 'pi.unidade_medida_id as unidade_id', 'um.sigla as unidade', 'ic.codigo', 'ic.descricao', 'pi.valor_unitario_adjudicado as preco'])
+            ->groupBy(fn ($r) => $r->item_id.'|'.($r->unidade_id ?? 0))
+            ->map(fn (Collection $g) => ['codigo' => $g->first()->codigo, 'descricao' => $g->first()->descricao, 'unidade' => $g->first()->unidade]
+                + self::estatisticas($g->pluck('preco')->map(fn ($v) => (float) $v)))
+            ->sortBy('descricao')->values()->all();
+    }
+
     /** Itens de catálogo com preço registrado, para a busca da tela. */
     public function buscarItens(FiltrosAplicados $f, string $termo): array
     {
