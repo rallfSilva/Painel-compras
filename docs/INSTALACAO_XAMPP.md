@@ -83,6 +83,16 @@ Em servidor, configure os dois comandos como serviço (NSSM ou Agendador de Tare
 
 Arquivos importados ficam em `backend/storage/app/private/importacoes` para permitir o reprocessamento. Tokens de integrações (opcionais) vão no `.env`: `COMPRASGOV_TOKEN` e `FINANCEIRO_RR_TOKEN`.
 
+## 5.1 Assistente de IA (opcional)
+
+O Assistente de consultas funciona sem nenhum serviço externo (`AI_PROVIDER=none`): as perguntas são interpretadas por regras locais. Para interpretar perguntas mais livres com um modelo gratuito na rede da SELC:
+
+1. Instale o [Ollama](https://ollama.com) no servidor (ou em outra máquina da rede) e baixe um modelo: `ollama pull llama3.1` (ou `qwen2.5`).
+2. No `.env`: `AI_PROVIDER=ollama`, `AI_MODEL=llama3.1`, `AI_BASE_URL=http://localhost:11434` (ou o endereço da máquina) e, se preciso, `AI_TIMEOUT=30`.
+3. `php artisan config:clear`.
+
+APIs externas (`openai`, compatível com OpenAI, ou `anthropic`) são pagas e só devem ser ativadas por decisão da SELC; exigem `AI_API_KEY` e o nome do modelo em `AI_MODEL`. Em qualquer provedor, o modelo recebe apenas o texto da pergunta e a lista de consultas; os números vêm sempre do banco, com as permissões do usuário. Se o modelo não responder, o sistema volta às regras locais. O uso exige a permissão `ia.consultar` (perfis Administrador, Gestor SELC, Analista e Gestor de Órgão).
+
 ## 6. Desenvolvimento do frontend
 
 ```bat
