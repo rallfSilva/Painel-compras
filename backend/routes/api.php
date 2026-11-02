@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ComprasController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FiltroController;
 use App\Http\Controllers\Api\FornecedorController;
+use App\Http\Controllers\Api\ImportacaoController;
 use App\Http\Controllers\Api\InteligenciaController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\OrgaoController;
@@ -91,6 +92,25 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Etapa 4 — Administração (seção 29): cada cadastro confere a permissão do recurso.
+    // Etapa 5 — importação de dados e integrações (seção 26).
+    Route::middleware('permissao:importacao.executar')->prefix('importacoes')->group(function () {
+        Route::get('/tipos', [ImportacaoController::class, 'tipos']);
+        Route::get('/', [ImportacaoController::class, 'listar']);
+        Route::post('/', [ImportacaoController::class, 'receber'])->middleware('throttle:30,1');
+        Route::get('/{id}', [ImportacaoController::class, 'detalhe'])->whereNumber('id');
+        Route::get('/{id}/erros', [ImportacaoController::class, 'erros'])->whereNumber('id');
+        Route::post('/{id}/validar', [ImportacaoController::class, 'validar'])->whereNumber('id');
+        Route::post('/{id}/confirmar', [ImportacaoController::class, 'confirmar'])->whereNumber('id');
+        Route::post('/{id}/reprocessar', [ImportacaoController::class, 'reprocessar'])->whereNumber('id');
+        Route::delete('/{id}', [ImportacaoController::class, 'excluir'])->whereNumber('id');
+    });
+    Route::middleware('permissao:integracoes.gerenciar')->prefix('integracoes')->group(function () {
+        Route::get('/', [ImportacaoController::class, 'integracoes']);
+        Route::put('/{codigo}', [ImportacaoController::class, 'salvarIntegracao'])->where('codigo', '[A-Za-z_]+');
+        Route::post('/{codigo}/testar', [ImportacaoController::class, 'testarIntegracao'])->where('codigo', '[A-Za-z_]+')->middleware('throttle:20,1');
+        Route::post('/{codigo}/sincronizar', [ImportacaoController::class, 'sincronizar'])->where('codigo', '[A-Za-z_]+')->middleware('throttle:10,1');
+    });
+
     Route::prefix('admin')->group(function () {
         Route::get('/', [AdminController::class, 'painel']);
         Route::get('/cadastros/{recurso}', [AdminController::class, 'listar']);

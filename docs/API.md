@@ -145,3 +145,18 @@ Todas aceitam os parâmetros de filtro globais.
 | `GET /admin/usuarios` · `POST` · `PUT /admin/usuarios/{id}` | `usuarios.gerenciar` | Usuários, perfis e órgãos; inclusão e alteração (`nome`, `email`, `perfil_id`, `ativo`, `orgaos[]`, `senha`) |
 | `GET /admin/perfis` · `PUT /admin/perfis/{id}` | `usuarios.gerenciar` | Matriz de perfis × permissões; `permissoes[]` com os códigos |
 | `GET /admin/logs` | `logs.ver` | Logs de auditoria paginados; `acao` (prefixo), `usuario_id`, `busca` |
+
+## Importação e integrações (Etapa 5)
+
+| Método e rota | Permissão | Descrição |
+|---|---|---|
+| `GET /importacoes/tipos` | `importacao.executar` | Os 12 tipos de importação com os campos (nome, rótulo, tipo, obrigatório) |
+| `POST /importacoes` | `importacao.executar` | Multipart `tipo` + `arquivo` (XLSX, XLS, CSV, JSON; até 20 MB). Devolve colunas, mapeamento sugerido e amostra |
+| `POST /importacoes/{id}/validar` | `importacao.executar` | `mapeamento` {coluna: campo}. Valida todas as linhas; `resumo` com total, válidos, inválidos, duplicados, novos, atualizações, erros por campo e amostra |
+| `POST /importacoes/{id}/confirmar` | `importacao.executar` | Coloca na fila. Situação: NA_FILA → PROCESSANDO → CONCLUIDO ou ERRO |
+| `POST /importacoes/{id}/reprocessar` | `importacao.executar` | Nova importação validada com o mesmo arquivo e mapeamento |
+| `GET /importacoes` · `GET /importacoes/{id}` · `GET /importacoes/{id}/erros` · `DELETE /importacoes/{id}` | `importacao.executar` | Histórico (`tipo`, `origem`, `situacao[]`, `busca`), detalhe, relatório de inconsistências paginado e exclusão de importação não processada |
+| `GET /integracoes` | `integracoes.gerenciar` | Integrações com parâmetros, última sincronização e os 10 últimos logs |
+| `PUT /integracoes/{codigo}` | `integracoes.gerenciar` | `ativa`, `parametros` |
+| `POST /integracoes/{codigo}/testar` | `integracoes.gerenciar` | Testa a conexão |
+| `POST /integracoes/{codigo}/sincronizar` | `integracoes.gerenciar` | `de`, `ate` (opcionais). Coloca na fila (HTTP 202) |
