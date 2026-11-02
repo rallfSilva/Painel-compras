@@ -205,8 +205,9 @@ export function Composicao({ titulo, subtitulo, dados, formatar = formatarAbrevi
 }
 
 /** Gráfico de rosca com o total no centro. */
-export function Rosca({ titulo, subtitulo, dados, rotuloTotal, className, extra }: {
+export function Rosca({ titulo, subtitulo, dados, rotuloTotal, className, extra, formatar = formatarNumero, formatarCentro = formatar }: {
   titulo: string; subtitulo?: string; dados: Fatia[]; rotuloTotal: string; className?: string; extra?: ReactNode
+  formatar?: (v: number | null) => string; formatarCentro?: (v: number | null) => string
 }) {
   const total = dados.reduce((s, d) => s + d.valor, 0)
   return (
@@ -222,19 +223,19 @@ export function Rosca({ titulo, subtitulo, dados, rotuloTotal, className, extra 
                 <Tooltip content={({ active, payload }) => {
                   const d = payload?.[0]?.payload as Fatia | undefined
                   if (!active || !d) return null
-                  return <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-lg"><p className="font-semibold">{d.nome}</p><p className="tabular">{formatarNumero(d.valor)} · {formatarPercentual(total ? (d.valor / total) * 100 : null)}</p></div>
+                  return <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-lg"><p className="font-semibold">{d.nome}</p><p className="tabular">{formatar(d.valor)} · {formatarPercentual(total ? (d.valor / total) * 100 : null)}</p></div>
                 }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xl font-semibold tabular">{formatarNumero(total)}</span>
+              <span className="text-xl font-semibold tabular">{formatarCentro(total)}</span>
               <span className="text-[11px] text-muted-foreground">{rotuloTotal}</span>
             </div>
           </div>
           <ul className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs">
             {dados.map((d) => (
               <li key={d.chave} className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm" style={{ background: d.cor }} aria-hidden />{d.nome}: <strong className="tabular">{formatarNumero(d.valor)}</strong>
+                <span className="size-2.5 rounded-sm" style={{ background: d.cor }} aria-hidden />{d.nome}: <strong className="tabular">{formatar(d.valor)}</strong>
                 <span className="text-muted-foreground tabular">({formatarPercentual(total ? (d.valor / total) * 100 : null)})</span>
               </li>
             ))}
@@ -242,7 +243,7 @@ export function Rosca({ titulo, subtitulo, dados, rotuloTotal, className, extra 
           {extra}
         </div>
       }
-      tabela={<Tabela cabecalho={['Grupo', 'Quantidade', '%']} linhas={dados.map((d) => [d.nome, formatarNumero(d.valor), formatarPercentual(total ? (d.valor / total) * 100 : null)])} />}
+      tabela={<Tabela cabecalho={['Grupo', 'Valor', '%']} linhas={dados.map((d) => [d.nome, formatar(d.valor), formatarPercentual(total ? (d.valor / total) * 100 : null)])} />}
     />
   )
 }

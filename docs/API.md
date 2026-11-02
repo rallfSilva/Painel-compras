@@ -98,3 +98,25 @@ Todas aceitam os filtros globais. Linhas agrupadas trazem `filtro` e `chave` par
 | GET | `/inteligencia/natureza` | `dashboard.ver` | Compras por tipo, natureza, elemento, subelemento, grupo e classe, e ranking dos 50 itens. |
 | GET | `/inteligencia/itens/{id}` | `registros.ver` | Evolução anual dos preços por unidade de fornecimento e os processos em que o item foi comprado. |
 | GET | `/inteligencia/sistematica` | `dashboard.ver` | Quantidade, valor, economia, % disputa, situações e tempo médio por sistemática; forma de processamento; evolução por classificação e regime; tabela de equivalência e série comparável. Aceita `economia_base` e `incluir_sem_disputa`. |
+
+## Inteligência (Etapa 3B)
+
+| Método | Rota | Permissão | Descrição |
+|---|---|---|---|
+| GET | `/inteligencia/itens-adjudicados` | `registros.ver` | Itens com resultado e todos os campos da seção 16, paginados (`pagina`, `por_pagina`, `ordem`, `direcao`, `busca`, `situacao[]`). Aceita `caminho` da árvore de decomposição. |
+| GET | `/inteligencia/classes` | `dashboard.ver` | Resumo e valor por classe (grupo, tipo, itens, compras, processos, órgãos, fornecedores). |
+| GET | `/inteligencia/classes/{id}` | `dashboard.ver` | Itens da classe por unidade de fornecimento (quantidade, preço médio, mínimo, máximo). |
+| GET | `/catalogo` | `dashboard.ver` | Itens do catálogo, paginados (`busca`, `status[]`, `grupo_id`, `classe_id`, `apenas_duplicados`). Não usa filtros globais. |
+| GET | `/catalogo/resumo` | `dashboard.ver` | Totais por status, duplicidades, itens sem compra, equivalências e opções dos formulários. |
+| GET | `/catalogo/{id}` | `dashboard.ver` | Ficha: dados, duplicidades, semelhantes, equivalências e histórico de alterações. |
+| GET | `/catalogo/duplicidades` | `dashboard.ver` | Grupos de itens com a mesma descrição normalizada e unidade. |
+| GET | `/catalogo/equivalencias?status=` | `dashboard.ver` | Propostas e decisões de equivalência. |
+| POST / PUT | `/catalogo`, `/catalogo/{id}` | `cadastros.gerenciar` | Cria ou edita item; grava o antes/depois no histórico. |
+| POST | `/catalogo/equivalencias` | `cadastros.gerenciar` | Propõe equivalência (`item_id`, `equivalente_id`, `justificativa`). |
+| POST | `/catalogo/equivalencias/{id}/decisao` | `cadastros.gerenciar` | `decisao` VALIDAR ou REJEITAR, `justificativa` (mín. 10 caracteres) e `confirmar_especificacao` quando as especificações diferem. |
+| GET | `/inteligencia/analise-total` | `dashboard.ver` | Dimensões da árvore, unidade superior × contratante, amparo × classe, compras recorrentes, concentração (HHI) e itens com maior variação de preço. |
+| GET | `/inteligencia/analise-total/decomposicao?dimensao=&caminho=ano:2025,unidade:12` | `dashboard.ver` | Um nível da árvore de decomposição (valor `nulo` = não informado). |
+| GET | `/inteligencia/analise-total/rankings?limite_orgaos=&limite_itens=…` | `dashboard.ver` | Rankings de órgãos, fornecedores, itens, classes, municípios, processos e amparos. |
+| GET | `/inteligencia/precos?janela_meses=` | `dashboard.ver` | Resumo e itens com maior dispersão de preço (`janela_meses=0` = todo o histórico). |
+| GET | `/inteligencia/precos/itens?busca=` | `dashboard.ver` | Busca de itens com preço registrado, por unidade. |
+| GET | `/inteligencia/precos/itens/{id}?unidade_id=&janela_meses=&quantidade_min=&quantidade_max=` | `registros.ver` | Estatísticas, evolução, comparação por órgão, município, fornecedor e ano, estadual × nacional, alertas e referências. |

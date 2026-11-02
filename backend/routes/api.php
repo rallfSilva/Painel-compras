@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnaliseController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ComprasController;
 use App\Http\Controllers\Api\DashboardController;
@@ -44,6 +45,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/inteligencia/natureza', [InteligenciaController::class, 'natureza']);
         Route::get('/inteligencia/sistematica', [InteligenciaController::class, 'sistematica']);
 
+        // Etapa 3B — Inteligência (seções 16 a 19 e 24)
+        Route::get('/inteligencia/classes', [AnaliseController::class, 'classes']);
+        Route::get('/inteligencia/classes/{id}', [AnaliseController::class, 'classe'])->whereNumber('id');
+        Route::get('/catalogo', [AnaliseController::class, 'catalogo']);
+        Route::get('/catalogo/resumo', [AnaliseController::class, 'catalogoResumo']);
+        Route::get('/catalogo/duplicidades', [AnaliseController::class, 'catalogoDuplicidades']);
+        Route::get('/catalogo/equivalencias', [AnaliseController::class, 'catalogoEquivalencias']);
+        Route::get('/catalogo/{id}', [AnaliseController::class, 'catalogoItem'])->whereNumber('id');
+        Route::get('/inteligencia/analise-total', [AnaliseController::class, 'analiseTotal']);
+        Route::get('/inteligencia/analise-total/decomposicao', [AnaliseController::class, 'decomposicao']);
+        Route::get('/inteligencia/analise-total/rankings', [AnaliseController::class, 'rankings']);
+        Route::get('/inteligencia/precos', [AnaliseController::class, 'precos']);
+        Route::get('/inteligencia/precos/itens', [AnaliseController::class, 'precosBuscar']);
+
+        Route::middleware('permissao:cadastros.gerenciar')->group(function () {
+            Route::post('/catalogo', [AnaliseController::class, 'catalogoSalvar']);
+            Route::put('/catalogo/{id}', [AnaliseController::class, 'catalogoSalvar'])->whereNumber('id');
+            Route::post('/catalogo/equivalencias', [AnaliseController::class, 'catalogoPropor']);
+            Route::post('/catalogo/equivalencias/{id}/decisao', [AnaliseController::class, 'catalogoDecidir'])->whereNumber('id');
+        });
+
         Route::middleware('permissao:registros.ver')->group(function () {
             Route::get('/processos', [ProcessoController::class, 'index']);
             Route::get('/processos/{id}', [ProcessoController::class, 'show'])->whereNumber('id');
@@ -52,6 +74,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/fornecedores/{id}', [FornecedorController::class, 'show'])->whereNumber('id');
             Route::get('/inteligencia/licitacoes-rp/processos', [InteligenciaController::class, 'licitacoesRpProcessos']);
             Route::get('/inteligencia/itens/{id}', [InteligenciaController::class, 'item'])->whereNumber('id');
+            Route::get('/inteligencia/itens-adjudicados', [AnaliseController::class, 'itensAdjudicados']);
+            Route::get('/inteligencia/precos/itens/{id}', [AnaliseController::class, 'precosItem'])->whereNumber('id');
         });
     });
 });

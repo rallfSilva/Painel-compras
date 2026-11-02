@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Services\AgregacaoService;
 use App\Support\FasesProcesso;
+use App\Support\Normalizador;
 use App\Support\Rastreabilidade;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -180,7 +181,7 @@ class DemonstrativoSeeder extends Seeder
                     $iid = DB::table('itens_catalogo')->insertGetId([
                         'classe_id' => $cid, 'classificacao_natureza_id' => $nat[$natureza], 'subelemento_despesa_id' => $sub[$subelemento],
                         'unidade_medida_id' => $um[$unidade], 'tipo' => $tipo, 'codigo' => (string) $codigo,
-                        'codigo_sufixo' => $codigo.'-'.$um[$unidade], 'descricao' => $descricao, 'descricao_normalizada' => $descricao,
+                        'codigo_sufixo' => $codigo.'-'.$um[$unidade], 'descricao' => $descricao, 'descricao_normalizada' => Normalizador::descricao($descricao),
                     ] + self::categoriaAlimento($descricao) + $this->base());
                     $itens[] = [
                         'id' => $iid, 'codigo' => (string) $codigo, 'descricao' => $descricao, 'unidade_id' => $um[$unidade],
@@ -191,7 +192,38 @@ class DemonstrativoSeeder extends Seeder
             }
         }
 
+        $this->variantesCatalogo($itens);
+
         return $itens;
+    }
+
+    /**
+     * Itens cadastrados em duplicidade ou com descrição parecida, sem compras, para demonstrar a busca de
+     * duplicidades e semelhantes do Catálogo (seção 17). Nenhum é unido automaticamente.
+     */
+    private function variantesCatalogo(array $itens): void
+    {
+        $variantes = [
+            'BANANA, PRATA, FRESCA' => ['Banana prata - fresca', null],
+            'ARROZ, TIPO 1, PACOTE 5 KG' => ['ARROZ TIPO 1 PCT 5KG', null],
+            'LUVA DE PROCEDIMENTO, LÁTEX, TAMANHO M' => ['LUVA DE PROCEDIMENTO, LÁTEX, TAMANHO G', 'Tamanho G, caixa com 100 unidades'],
+            'SORO FISIOLÓGICO, 0,9%, 500 ML' => ['SORO FISIOLÓGICO, 0,9%, 250 ML', 'Frasco de 250 ml'],
+        ];
+        $porDescricao = collect($itens)->keyBy('descricao');
+        $codigo = (int) collect($itens)->max(fn ($i) => (int) $i['codigo']);
+        foreach ($variantes as $base => [$descricao, $especificacao]) {
+            $b = DB::table('itens_catalogo')->where('id', $porDescricao[$base]['id'] ?? 0)->first();
+            if (! $b) {
+                continue;
+            }
+            $codigo += 11;
+            DB::table('itens_catalogo')->insert([
+                'classe_id' => $b->classe_id, 'classificacao_natureza_id' => $b->classificacao_natureza_id, 'subelemento_despesa_id' => $b->subelemento_despesa_id,
+                'unidade_medida_id' => $b->unidade_medida_id, 'tipo' => $b->tipo, 'codigo' => (string) $codigo, 'codigo_sufixo' => $codigo.'-'.$b->unidade_medida_id,
+                'descricao' => $descricao, 'descricao_normalizada' => Normalizador::descricao($descricao), 'especificacao' => $especificacao,
+                'categoria_alimento' => $b->categoria_alimento, 'perecivel' => $b->perecivel,
+            ] + $this->base());
+        }
     }
 
     /** @return array<string, list<int>> fornecedores por perfil */
