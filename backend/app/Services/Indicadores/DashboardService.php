@@ -3,8 +3,8 @@
 namespace App\Services\Indicadores;
 
 use App\Models\GlossarioIndicador;
-use App\Services\Filtros\FiltroService;
 use App\Services\Filtros\FiltrosAplicados;
+use App\Services\Filtros\FiltroService;
 
 /** Monta a resposta do Dashboard: valor atual, anterior, variação, tendência e explicação de cada indicador. */
 class DashboardService

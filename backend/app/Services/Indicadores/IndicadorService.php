@@ -2,8 +2,8 @@
 
 namespace App\Services\Indicadores;
 
-use App\Services\Filtros\FiltroService;
 use App\Services\Filtros\FiltrosAplicados;
+use App\Services\Filtros\FiltroService;
 use Illuminate\Support\Facades\DB;
 
 /**

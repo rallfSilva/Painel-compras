@@ -12,7 +12,7 @@ const cliente = new QueryClient({ defaultOptions: { queries: { retry: 1, refetch
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.VITE_ROUTER_BASE || '/'}>
       <QueryClientProvider client={cliente}>
         <TemaProvider>
           <TooltipProvider>

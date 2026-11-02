@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CabecalhosSeguranca;
+use App\Http\Middleware\ExigePermissao;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,8 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['permissao' => \App\Http\Middleware\ExigePermissao::class]);
-        $middleware->append(\App\Http\Middleware\CabecalhosSeguranca::class);
+        $middleware->alias(['permissao' => ExigePermissao::class]);
+        $middleware->append(CabecalhosSeguranca::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // A API sempre responde JSON, inclusive em erros

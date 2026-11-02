@@ -11,10 +11,15 @@ use Illuminate\Database\Schema\Blueprint;
 class Rastreabilidade
 {
     public const ORIGEM_MANUAL = 'MANUAL';
+
     public const ORIGEM_IMPORTACAO = 'IMPORTACAO';
+
     public const ORIGEM_PNCP = 'PNCP';
+
     public const ORIGEM_COMPRASGOV = 'COMPRASGOV';
+
     public const ORIGEM_SISTEMA_ESTADUAL = 'SISTEMA_ESTADUAL';
+
     public const ORIGEM_DEMONSTRATIVO = 'DEMONSTRATIVO';
 
     public static function colunas(Blueprint $table): void

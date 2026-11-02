@@ -12,7 +12,7 @@ class ExigePermissao
     public function handle(Request $request, Closure $next, string ...$permissoes): Response
     {
         $user = $request->user();
-        if (! $user || ! $user->ativo) {
+        if (! $user || $user->ativo === false) {
             return response()->json(['message' => 'Não autenticado.'], 401);
         }
         foreach ($permissoes as $p) {

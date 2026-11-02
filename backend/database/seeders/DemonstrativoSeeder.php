@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\AgregacaoService;
 use App\Support\Rastreabilidade;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -25,12 +26,12 @@ class DemonstrativoSeeder extends Seeder
         mt_srand(20261102);
         $this->agora = CarbonImmutable::now();
 
-        $regioes = $this->regioes();
+        $this->regioes();
         $unidades = $this->orgaosEUnidades();
         $itens = $this->catalogo();
         $fornecedores = $this->fornecedores();
         $this->processos($unidades, $itens, $fornecedores);
-        unset($regioes);
+        app(AgregacaoService::class)->recalcular();
     }
 
     private function base(): array
@@ -290,8 +291,10 @@ class DemonstrativoSeeder extends Seeder
 
                 $sitR = mt_rand(1, 100);
                 $situacao = $codigoSist === 'PREGAO' || $codigoSist === 'CONCORRENCIA'
-                    ? match (true) { $sitR <= 4 => 'DESERTO', $sitR <= 7 => 'FRACASSADO', $sitR <= 9 => 'REVOGADO', default => 'CONCLUIDO' }
-                    : 'CONCLUIDO';
+                    ? match (true) {
+                        $sitR <= 4 => 'DESERTO', $sitR <= 7 => 'FRACASSADO', $sitR <= 9 => 'REVOGADO', default => 'CONCLUIDO'
+                    }
+                : 'CONCLUIDO';
                 if ($data->greaterThan($hoje->subDays(40)) && mt_rand(1, 100) <= 50) {
                     $situacao = 'EM_ANDAMENTO';
                 }
