@@ -67,13 +67,21 @@ Depois rode `npm install` e `npm run build` na pasta `frontend`.
 
 ## 5. Fila de processamento
 
-As importações em lote (Etapa 5) usam a fila do banco. Deixe um terminal aberto com:
+As importações confirmadas e as sincronizações das integrações (Etapa 5) rodam na fila do banco. Deixe um terminal aberto com:
 
 ```bat
-php artisan queue:work --tries=3
+php artisan queue:work --timeout=3600
 ```
 
-Em servidor, configure esse comando como serviço (NSSM no Windows ou Supervisor no Linux).
+A sincronização diária das integrações ativas (2h) usa o agendador do Laravel. Em outro terminal:
+
+```bat
+php artisan schedule:work
+```
+
+Em servidor, configure os dois comandos como serviço (NSSM ou Agendador de Tarefas no Windows; Supervisor e cron no Linux). Sem o processador da fila, a importação fica "Na fila". Em uma instalação de teste, `QUEUE_CONNECTION=sync` no `.env` processa na hora, sem fila (não recomendado para arquivos grandes).
+
+Arquivos importados ficam em `backend/storage/app/private/importacoes` para permitir o reprocessamento. Tokens de integrações (opcionais) vão no `.env`: `COMPRASGOV_TOKEN` e `FINANCEIRO_RR_TOKEN`.
 
 ## 6. Desenvolvimento do frontend
 
@@ -96,6 +104,7 @@ Abra http://localhost:5173. O Vite encaminha `/api` para o `php artisan serve`. 
 | `php artisan test` | Roda os testes dos cálculos e da API |
 | `php artisan sic:limpar-demonstrativos` | Remove todos os dados fictícios |
 | `php artisan sic:recalcular-agregados` | Recalcula a tabela de resumo mensal |
+| `php artisan sic:sincronizar PNCP --de=2025-01-01 --ate=2025-01-31` | Coloca na fila a sincronização de uma integração (sem código: todas as ativas) |
 | `php artisan db:seed --class=DemonstrativoSeeder` | Cria novamente os dados fictícios |
 
 ## 8. Backup

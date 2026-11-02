@@ -130,6 +130,15 @@ Todas estão no glossário (`glossario_indicadores`, endpoint `/api/glossario`) 
 - **Relatórios**: 18 relatórios (geral, órgão, fornecedor, modalidade, economia, MPE, município, natureza, classe, itens, atas, saldo de atas, PCA, preços, desertos/fracassados, contratos, amparo legal e PNAE), gerados no servidor com os filtros globais, até 5.000 linhas, exportados em Excel, CSV e PDF (cabeçalho institucional, filtros aplicados, numeração de páginas e rodapé "Desenvolvido por NEXMIND"). Cada geração é registrada em `logs_auditoria` (`relatorio.gerar`). Exige `relatorios.exportar`.
 - **Administração**: cadastros e classificações por um registro único de recursos (`CadastrosService::RECURSOS`) com validação, permissão própria por recurso e histórico antes/depois em `historico_alteracoes`. Usuários: o usuário não desativa a si mesmo; perfis restritos por órgão exigem ao menos um órgão; senha com 8+ caracteres, letras e números; a troca de senha encerra as outras sessões. Perfis: o Administrador Geral mantém todas as permissões e ninguém tira do próprio perfil a permissão de gerenciar usuários. Logs de auditoria com filtro por tipo de ação.
 
+#### Etapa 5 (seção 26)
+
+- **Central de importação**: XLSX, XLS (PhpSpreadsheet, só dados), CSV (separador e codificação detectados; UTF-8 ou Windows-1252) e JSON (lista ou `dados`/`data`, objetos aninhados viram `pai.filho`). Até 20 MB e 50.000 linhas por arquivo. Fluxo: envio → leitura das colunas e sugestão do mapeamento (nome ou sinônimo normalizado) → validação de todas as linhas → confirmação → fila → histórico.
+- **Validação**: conversão de tipo (número brasileiro ou internacional, data dd/mm/aaaa, aaaa-mm-dd ou serial do Excel, CPF/CNPJ com dígito verificador e zero à esquerda recuperado, Sim/Não), obrigatórios, referências no cadastro (unidade, órgão, sistemática, item, processo, contrato, ata...) e duplicidade dentro do arquivo pela chave do importador (só a primeira ocorrência entra). O resumo separa novos e atualizações; as inconsistências ficam em `importacoes_erros` com linha, campo, mensagem e conteúdo.
+- **Gravação idempotente**: cada importador localiza o registro pela chave natural (CPF/CNPJ, código, número + unidade, identificador da fonte) e atualiza em vez de duplicar; campos vazios não apagam valores. Cada linha grava numa transação própria, então uma falha não derruba as demais. Todos os registros recebem `origem`, `importacao_id` e `fonte_atualizado_em`. Ao final, o importador recalcula o que depende do lote (totais dos processos e das atas, nº de participantes) e `agregados_compras_mensal` é recalculada.
+- **Importadores**: classificações (amparo, sistemática, forma, natureza, elemento, subelemento), unidades (unidade superior › órgão › unidade compradora), fornecedores, catálogo, processos e itens, resultados, atas, contratos, aditivos (prorrogam a vigência), utilização das atas, PCA (liga a demanda ao processo) e execução financeira (empenho, liquidação, pagamento).
+- **Reprocessamento controlado**: só de importação concluída ou com erro e com o arquivo guardado; gera nova importação, já validada com o mesmo mapeamento, que precisa de nova confirmação. Importações processadas não são excluídas.
+- **Integrações**: cada conector só coleta e traduz para os campos dos importadores; a gravação passa pela mesma validação e fica no histórico. *PNCP* (API pública de consulta): contratações por modalidade e contratos, apenas de órgãos com CNPJ cadastrado; identificador `PNCP:<nº de controle>` evita duplicidade; modalidades mapeadas para sistemática e forma. *Compras.gov.br* e *sistema financeiro estadual*: conector JSON configurável (URL com `{dataInicial}`, `{dataFinal}`, `{pagina}`, caminho da lista, tipo de registro e mapeamento campo → caminho). Tokens só no `.env`. Cada execução vai para `logs_sincronizacao` e atualiza a última sincronização; as ativas rodam todo dia às 2h.
+
 ## 3. Estrutura de diretórios
 
 ```
@@ -148,6 +157,8 @@ painel-compras/
 │   │   │   ├── Planejamento/        PcaService, ContratosService
 │   │   │   ├── Relatorios/          RelatoriosService (18 relatórios)
 │   │   │   ├── Admin/               CadastrosService, UsuariosService
+│   │   │   ├── Importacao/          leitor de arquivos, validação, 12 importadores
+│   │   │   ├── Integracoes/         conectores PNCP e JSON configurável
 │   │   │   ├── AgregacaoService.php
 │   │   │   └── Configuracoes.php
 │   │   └── Support/                 Rastreabilidade, FasesProcesso, DadosPessoais
@@ -182,6 +193,6 @@ painel-compras/
 | 2. Compras | Compras Totais (10 gráficos e ranking), Panorama por unidade contratante (14 colunas, exportação Excel/CSV/PDF), Licitações e Processos com fases e itens, Fornecedores (ranking, concentração, ficha), Órgãos e Unidades, filtro cruzado | Entregue |
 | 3A. Inteligência | Painéis geográfico (mapas de RR e do Brasil, região, município), por natureza/classe (ranking dos 50 itens, evolução de preços) e por sistemática (equivalência entre regimes), MPE, Alimentos/PNAE, Licitações para RP (12 indicadores, 8 gráficos), Aquisições por RP (14 indicadores, 3 tabelas cruzadas, sinalizadores) | Entregue |
 | 3B. Inteligência | Itens Adjudicados, Catálogo (normalização, duplicidades, semelhantes, equivalências validadas, histórico), Compras por Classe, Análise do Total Comprado (árvore de decomposição, unidades, amparo legal, rankings, recorrência, concentração, variação de preços), Análise de Preços | Entregue |
-| 4. Planejamento e Contratos | PCA (demandas, planejado × contratado, atrasadas, fora do PCA), Contratos (vencimentos 30/60/90, aditivos, alerta de acréscimo do art. 125), 18 Relatórios gerenciais (Excel, CSV, PDF com cabeçalho institucional e rodapé NEXMIND), Administração (cadastros, classificações, parâmetros, usuários, perfis e permissões, logs) | **Entregue neste PR** |
-| 5. Integração | Importação XLSX/CSV/JSON com fila, PNCP, Compras.gov.br, sistema financeiro estadual | |
+| 4. Planejamento e Contratos | PCA (demandas, planejado × contratado, atrasadas, fora do PCA), Contratos (vencimentos 30/60/90, aditivos, alerta de acréscimo do art. 125), 18 Relatórios gerenciais (Excel, CSV, PDF com cabeçalho institucional e rodapé NEXMIND), Administração (cadastros, classificações, parâmetros, usuários, perfis e permissões, logs) | Entregue |
+| 5. Integração | Central de importação XLSX/XLS/CSV/JSON (mapeamento, validação, duplicidades, confirmação, fila, histórico, reprocessamento) com 12 importadores; integrações PNCP, Compras.gov.br e sistema financeiro estadual com sincronização agendada | **Entregue neste PR** |
 | 6. IA | Consultas em linguagem natural com provedor configurável (local ou API opcional) | |

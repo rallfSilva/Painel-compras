@@ -27,7 +27,7 @@ export async function api<T>(caminho: string, opcoes: RequestInit = {}): Promise
     ...opcoes,
     headers: {
       Accept: 'application/json',
-      ...(opcoes.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(opcoes.body && !(opcoes.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...opcoes.headers,
     },

@@ -25,6 +25,7 @@ const AnalisePrecos = lazy(() => import('@/pages/AnalisePrecos').then((m) => ({ 
 const Pca = lazy(() => import('@/pages/Pca').then((m) => ({ default: m.Pca })))
 const Contratos = lazy(() => import('@/pages/Contratos').then((m) => ({ default: m.Contratos })))
 const Relatorios = lazy(() => import('@/pages/Relatorios').then((m) => ({ default: m.Relatorios })))
+const Importacao = lazy(() => import('@/pages/Importacao').then((m) => ({ default: m.Importacao })))
 const Administracao = lazy(() => import('@/pages/Administracao').then((m) => ({ default: m.Administracao })))
 const aguardandoPagina = <div className="flex h-40 items-center justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
 
@@ -46,6 +47,7 @@ const PAGINAS: Record<string, ReactElement> = {
   pca: <Pca />,
   contratos: <Contratos />,
   relatorios: <Relatorios />,
+  importacao: <Importacao />,
   administracao: <Administracao />,
 }
 import { MODULOS } from '@/modulos'
