@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AnaliseController;
+use App\Http\Controllers\Api\AssistenteController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ComprasController;
 use App\Http\Controllers\Api\DashboardController;
@@ -109,6 +110,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{codigo}', [ImportacaoController::class, 'salvarIntegracao'])->where('codigo', '[A-Za-z_]+');
         Route::post('/{codigo}/testar', [ImportacaoController::class, 'testarIntegracao'])->where('codigo', '[A-Za-z_]+')->middleware('throttle:20,1');
         Route::post('/{codigo}/sincronizar', [ImportacaoController::class, 'sincronizar'])->where('codigo', '[A-Za-z_]+')->middleware('throttle:10,1');
+    });
+
+    // Etapa 6 — assistente em linguagem natural, alertas e recomendações (seção 32).
+    Route::middleware('permissao:ia.consultar')->prefix('ia')->group(function () {
+        Route::get('/', [AssistenteController::class, 'configuracao']);
+        Route::post('/perguntar', [AssistenteController::class, 'perguntar'])->middleware('throttle:30,1');
+        Route::get('/alertas', [AssistenteController::class, 'alertas']);
     });
 
     Route::prefix('admin')->group(function () {

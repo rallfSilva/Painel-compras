@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { ChevronsLeft, ChevronsRight, X } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Sparkles, X } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { MODULOS } from '@/modulos'
 import { cn } from '@/lib/utils'
 import { Dica } from '@/components/ui/tooltip'
@@ -10,6 +11,19 @@ export function MenuLateral({ recolhido, aoRecolher, aberto, aoFechar }: {
   aberto: boolean
   aoFechar: () => void
 }) {
+  const { pode } = useAuth()
+  const classeItem = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'group flex items-center gap-3 rounded-md px-2.5 py-2 text-[13px] transition-colors',
+      isActive ? 'bg-sidebar-active font-medium text-white' : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white',
+    )
+  const assistente = (
+    <NavLink to="/assistente" onClick={aoFechar} className={classeItem}>
+      <Sparkles className="size-[18px] shrink-0" />
+      <span className={cn('flex-1 truncate', recolhido && 'lg:hidden')}>Assistente de consultas</span>
+      <span className={cn('rounded bg-white/10 px-1.5 text-[10px] text-sidebar-muted', recolhido && 'lg:hidden')}>E6</span>
+    </NavLink>
+  )
   return (
     <>
       {aberto && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={aoFechar} aria-hidden />}
@@ -43,12 +57,7 @@ export function MenuLateral({ recolhido, aoRecolher, aberto, aoFechar }: {
                   to={`/${m.slug}`}
                   end={m.slug === ''}
                   onClick={aoFechar}
-                  className={({ isActive }) =>
-                    cn(
-                      'group flex items-center gap-3 rounded-md px-2.5 py-2 text-[13px] transition-colors',
-                      isActive ? 'bg-sidebar-active font-medium text-white' : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white',
-                    )
-                  }
+                  className={classeItem}
                 >
                   <m.icone className="size-[18px] shrink-0" />
                   <span className={cn('flex-1 truncate', recolhido && 'lg:hidden')}>{m.nome}</span>
@@ -60,6 +69,11 @@ export function MenuLateral({ recolhido, aoRecolher, aberto, aoFechar }: {
               return <li key={m.slug}>{recolhido ? <Dica conteudo={m.nome}>{item}</Dica> : item}</li>
             })}
           </ul>
+          {pode('ia.consultar') && (
+            <div className="mt-3 border-t border-white/10 pt-3">
+              {recolhido ? <Dica conteudo="Assistente de consultas">{assistente}</Dica> : assistente}
+            </div>
+          )}
         </nav>
 
         <button

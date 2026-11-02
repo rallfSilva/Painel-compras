@@ -26,6 +26,7 @@ const Pca = lazy(() => import('@/pages/Pca').then((m) => ({ default: m.Pca })))
 const Contratos = lazy(() => import('@/pages/Contratos').then((m) => ({ default: m.Contratos })))
 const Relatorios = lazy(() => import('@/pages/Relatorios').then((m) => ({ default: m.Relatorios })))
 const Importacao = lazy(() => import('@/pages/Importacao').then((m) => ({ default: m.Importacao })))
+const Assistente = lazy(() => import('@/pages/Assistente').then((m) => ({ default: m.Assistente })))
 const Administracao = lazy(() => import('@/pages/Administracao').then((m) => ({ default: m.Administracao })))
 const aguardandoPagina = <div className="flex h-40 items-center justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
 
@@ -53,7 +54,7 @@ const PAGINAS: Record<string, ReactElement> = {
 import { MODULOS } from '@/modulos'
 
 export default function App() {
-  const { usuario, carregando } = useAuth()
+  const { usuario, carregando, pode } = useAuth()
 
   if (carregando) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="size-7 animate-spin text-primary" /></div>
@@ -68,6 +69,7 @@ export default function App() {
           {MODULOS.filter((m) => m.slug).map((m) => (
             <Route key={m.slug} path={m.slug} element={PAGINAS[m.slug] ? <Suspense fallback={aguardandoPagina}>{PAGINAS[m.slug]}</Suspense> : <ModuloPlanejado modulo={m} />} />
           ))}
+          {pode('ia.consultar') && <Route path="assistente" element={<Suspense fallback={aguardandoPagina}><Assistente /></Suspense>} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

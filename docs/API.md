@@ -160,3 +160,11 @@ Todas aceitam os parâmetros de filtro globais.
 | `PUT /integracoes/{codigo}` | `integracoes.gerenciar` | `ativa`, `parametros` |
 | `POST /integracoes/{codigo}/testar` | `integracoes.gerenciar` | Testa a conexão |
 | `POST /integracoes/{codigo}/sincronizar` | `integracoes.gerenciar` | `de`, `ate` (opcionais). Coloca na fila (HTTP 202) |
+
+## Assistente de IA (Etapa 6)
+
+| Método e rota | Permissão | Descrição |
+|---|---|---|
+| `GET /ia` | `ia.consultar` | Provedor em uso (`none`, `ollama`, `openai`, `anthropic`), catálogo das 14 consultas com exemplo e aviso |
+| `POST /ia/perguntar` | `ia.consultar` | `pergunta` (3 a 500 caracteres) + filtros globais na query string. Devolve `resposta`, `consulta`, `interpretador`, `entendimento`, `periodo`, `filtros` (origem pergunta, painel ou perfil), `indicadores` (com `natureza`), `tabela`, `fonte`, `registros` (módulo e filtros para abrir), `avisos`, `sem_dados` e, se não entendida, `sugestoes`. Limite de 30 por minuto |
+| `GET /ia/alertas` | `ia.consultar` | Alertas do recorte com `severidade`, `quantidade`, `descricao`, `recomendacao` e `modulo` |
