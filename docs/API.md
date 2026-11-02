@@ -1,4 +1,4 @@
-# API REST — Etapas 1 e 2
+# API REST — Etapas 1 a 3A
 
 Base: `/api`. Respostas em JSON. Exceto o login, toda rota exige `Authorization: Bearer <token>`.
 
@@ -81,3 +81,20 @@ Todas as rotas aceitam os parâmetros de filtro globais. As listagens aceitam `p
 | GET | `/fornecedores/{id}` | `registros.ver` | Ficha do fornecedor e histórico de fornecimento. CPF, endereço, e-mail e telefone de pessoa física saem protegidos sem `dados_pessoais.ver`. |
 
 Perfis restritos por órgão só veem dados e fichas dos seus órgãos.
+
+## Inteligência (Etapa 3A)
+
+Todas aceitam os filtros globais. Linhas agrupadas trazem `filtro` e `chave` para o filtro cruzado.
+
+| Método | Rota | Permissão | Descrição |
+|---|---|---|---|
+| GET | `/inteligencia/mpe` | `dashboard.ver` | Indicadores de MPE, categorias de porte (MPE, agricultura familiar, demais, não informado), porte, município do fornecedor, órgão, evolução anual, localização e principais fornecedores MPE. |
+| GET | `/inteligencia/alimentos` | `dashboard.ver` | Indicadores, aproximação do mínimo PNAE, categorias, perecibilidade, itens (preço médio, mínimo, máximo, frequência), órgãos, município de origem, fornecedores e evolução da agricultura familiar. |
+| GET | `/inteligencia/licitacoes-rp` | `dashboard.ver` | 12 indicadores e os 8 gráficos da seção 14. |
+| GET | `/inteligencia/licitacoes-rp/processos` | `registros.ver` | Lista paginada das licitações para RP com os campos da seção 14.2 (`pagina`, `por_pagina`, `ordem`, `direcao`, `busca`). |
+| GET | `/inteligencia/aquisicoes-rp?ata_id=&item_id=&unidade_id=` | `dashboard.ver` | 14 indicadores, sinalizadores e as tabelas por ata, por item e por órgão participante; a seleção de uma tabela filtra as outras duas. |
+| GET | `/inteligencia/geografico` | `dashboard.ver` | Valor por UF do fornecedor, os 15 municípios de RR (compras, processos, fornecedores, participação econômica), regiões e fornecedores locais x de outros estados. |
+| GET | `/inteligencia/municipios/{id}` | `dashboard.ver` | Ficha do município: órgãos, fornecedores, materiais, modalidades e evolução. |
+| GET | `/inteligencia/natureza` | `dashboard.ver` | Compras por tipo, natureza, elemento, subelemento, grupo e classe, e ranking dos 50 itens. |
+| GET | `/inteligencia/itens/{id}` | `registros.ver` | Evolução anual dos preços por unidade de fornecimento e os processos em que o item foi comprado. |
+| GET | `/inteligencia/sistematica` | `dashboard.ver` | Quantidade, valor, economia, % disputa, situações e tempo médio por sistemática; forma de processamento; evolução por classificação e regime; tabela de equivalência e série comparável. Aceita `economia_base` e `incluir_sem_disputa`. |

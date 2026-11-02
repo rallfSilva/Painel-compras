@@ -29,7 +29,7 @@ const filtroColuna: FilterFn<unknown> = (row, id, f: FiltroColuna) => {
  */
 export function TabelaAvancada<T>({
   colunas, dados, pesquisarEm, placeholderPesquisa = 'Pesquisar…', aoClicarLinha, cabecalhoExportacao, podeExportar,
-  rodape, ordemInicial, acoes, rotuloLinha,
+  rodape, ordemInicial, acoes, rotuloLinha, selecionada,
 }: {
   colunas: Coluna<T>[]
   dados: T[]
@@ -42,6 +42,8 @@ export function TabelaAvancada<T>({
   ordemInicial?: SortingState
   acoes?: ReactNode
   rotuloLinha?: (l: T) => string
+  /** Destaca a linha selecionada (ex.: filtro entre tabelas). */
+  selecionada?: (l: T) => boolean
 }) {
   const [ordem, setOrdem] = useState<SortingState>(ordemInicial ?? [])
   const [busca, setBusca] = useState('')
@@ -162,6 +164,7 @@ export function TabelaAvancada<T>({
             {tabela.getRowModel().rows.map((r) => (
               <tr key={r.id}
                 className={cn('group', aoClicarLinha && 'cursor-pointer')}
+                aria-selected={selecionada ? selecionada(r.original) : undefined}
                 onClick={aoClicarLinha ? () => aoClicarLinha(r.original) : undefined}
                 onKeyDown={aoClicarLinha ? (e) => { if (e.key === 'Enter') aoClicarLinha(r.original) } : undefined}
                 tabIndex={aoClicarLinha ? 0 : undefined}
@@ -173,7 +176,7 @@ export function TabelaAvancada<T>({
                       style={c.fixa ? { left: offsets[i], minWidth: c.largura, width: c.largura, maxWidth: c.largura } : undefined}
                       className={cn('border-b bg-card px-2.5 py-2 align-top group-hover:bg-muted/60 group-focus-visible:bg-muted',
                         alinhadaDireita(c.tipo) ? 'whitespace-nowrap text-right' : 'text-left',
-                        c.fixa && 'sticky z-10', i === ultimaFixa && 'border-r')}>
+                        c.fixa && 'sticky z-10', i === ultimaFixa && 'border-r', selecionada?.(r.original) && '!bg-accent')}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   )

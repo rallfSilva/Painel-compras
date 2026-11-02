@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ComprasController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FiltroController;
 use App\Http\Controllers\Api\FornecedorController;
+use App\Http\Controllers\Api\InteligenciaController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\OrgaoController;
 use App\Http\Controllers\Api\ProcessoController;
@@ -33,12 +34,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/unidades/{id}', [OrgaoController::class, 'unidade'])->whereNumber('id');
         Route::get('/fornecedores/concentracao', [FornecedorController::class, 'concentracao']);
 
+        // Etapa 3A — Inteligência (seções 9 a 15)
+        Route::get('/inteligencia/mpe', [InteligenciaController::class, 'mpe']);
+        Route::get('/inteligencia/alimentos', [InteligenciaController::class, 'alimentos']);
+        Route::get('/inteligencia/licitacoes-rp', [InteligenciaController::class, 'licitacoesRp']);
+        Route::get('/inteligencia/aquisicoes-rp', [InteligenciaController::class, 'aquisicoesRp']);
+        Route::get('/inteligencia/geografico', [InteligenciaController::class, 'geografico']);
+        Route::get('/inteligencia/municipios/{id}', [InteligenciaController::class, 'municipio'])->whereNumber('id');
+        Route::get('/inteligencia/natureza', [InteligenciaController::class, 'natureza']);
+        Route::get('/inteligencia/sistematica', [InteligenciaController::class, 'sistematica']);
+
         Route::middleware('permissao:registros.ver')->group(function () {
             Route::get('/processos', [ProcessoController::class, 'index']);
             Route::get('/processos/{id}', [ProcessoController::class, 'show'])->whereNumber('id');
             Route::get('/itens', [ProcessoController::class, 'itens']);
             Route::get('/fornecedores', [FornecedorController::class, 'index']);
             Route::get('/fornecedores/{id}', [FornecedorController::class, 'show'])->whereNumber('id');
+            Route::get('/inteligencia/licitacoes-rp/processos', [InteligenciaController::class, 'licitacoesRpProcessos']);
+            Route::get('/inteligencia/itens/{id}', [InteligenciaController::class, 'item'])->whereNumber('id');
         });
     });
 });

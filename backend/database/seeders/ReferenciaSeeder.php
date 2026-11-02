@@ -116,6 +116,21 @@ class ReferenciaSeeder extends Seeder
             ]);
         }
 
+        // Equivalência entre modalidades dos regimes antigos e da Lei 14.133 (séries históricas comparáveis).
+        $modId = fn (string $c) => DB::table('classificacoes_modalidades')->where('codigo', $c)->value('id');
+        $equivalencias = [
+            ['PREGAO_10520', 'PREGAO_14133', 'Pregão da Lei 10.520/2002 equivale ao pregão da Lei 14.133/2021.'],
+            ['CONCORRENCIA_8666', 'CONCORRENCIA_14133', 'Concorrência da Lei 8.666/1993 equivale à concorrência da Lei 14.133/2021.'],
+            ['TOMADA_8666', 'CONCORRENCIA_14133', 'Tomada de preços foi extinta; a Lei 14.133/2021 usa concorrência para esses objetos.'],
+            ['CONVITE_8666', 'CONCORRENCIA_14133', 'Convite foi extinto; a comparação mais próxima é a concorrência (ou dispensa, por valor).'],
+        ];
+        foreach ($equivalencias as [$o, $e, $obs]) {
+            DB::table('equivalencias_regimes')->updateOrInsert(
+                ['tipo' => 'MODALIDADE', 'origem_id' => $modId($o), 'equivalente_id' => $modId($e)],
+                ['observacao' => $obs, 'created_at' => $agora, 'updated_at' => $agora],
+            );
+        }
+
         // Sistemática > forma de aquisição. com_disputa = false fica fora do % de economia por padrão.
         $sistematicas = [
             ['PREGAO', 'Pregão', 'LICITACAO', true, [['PREGAO_ELETRONICO', 'Pregão eletrônico'], ['PREGAO_PRESENCIAL', 'Pregão presencial']]],
@@ -217,6 +232,9 @@ class ReferenciaSeeder extends Seeder
             ['contratos.dias_alerta_vencimento', '90', 'Dias para considerar um contrato próximo do vencimento'],
             ['atas.dias_alerta_vencimento', '90', 'Dias para considerar uma ata próxima do vencimento'],
             ['precos.minimo_observacoes', '3', 'Mínimo de preços do mesmo item, unidade de fornecimento e ano para formar a referência estadual'],
+            ['pnae.percentual_minimo_af', '30', 'Percentual mínimo dos recursos do PNAE a aplicar na agricultura familiar (Lei nº 11.947/2009, art. 14). Ajuste se a legislação mudar'],
+            ['atas.utilizacao_baixa', '30', 'Percentual de utilização abaixo do qual uma ata é sinalizada como de baixa utilização'],
+            ['atas.utilizacao_alta', '80', 'Percentual de utilização a partir do qual uma ata é sinalizada como de alta utilização'],
             ['fornecedores.limite_concentracao', '30', 'Percentual do valor contratado de uma unidade, por um único fornecedor, a partir do qual a concentração é sinalizada para análise'],
         ] as [$k, $v, $d]) {
             DB::table('configuracoes')->updateOrInsert(['chave' => $k], ['valor' => $v, 'descricao' => $d, 'created_at' => $agora, 'updated_at' => $agora]);

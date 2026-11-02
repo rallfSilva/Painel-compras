@@ -47,7 +47,7 @@ Decisões principais:
 - **Ausência ≠ zero**: valores não informados ficam `NULL` e a API devolve `null` ("Não informado").
 - **Dados fictícios separados**: `ficticio = true`. A interface mostra um aviso enquanto eles existirem e `php artisan sic:limpar-demonstrativos` os remove.
 
-### 2.2 Tabelas (Etapas 1 e 2)
+### 2.2 Tabelas (Etapas 1 a 3A)
 
 | Grupo | Tabelas |
 |---|---|
@@ -57,6 +57,7 @@ Decisões principais:
 | Classificações | `regimes_legais`, `amparos_legais`, `classificacoes_modalidades`, `sistematicas_aquisicao`, `formas_aquisicao`, `classificacoes_natureza`, `naturezas_despesa`, `elementos_despesa`, `subelementos_despesa`, `equivalencias_regimes` |
 | Catálogo | `catalogos`, `grupos_materiais`, `classes_materiais`, `unidades_medida`, `itens_catalogo` |
 | Compras | `processos`, `processos_fases`, `processos_itens`, `processos_participantes` (Etapa 2: licitantes, para participação e vitórias dos fornecedores) |
+| Colunas da Etapa 3A | `itens_catalogo.categoria_alimento` (CARNES, AVES, PEIXES, FRUTAS, VERDURAS, LEGUMES, CEREAIS, GRAOS, LATICINIOS, INDUSTRIALIZADOS) e `itens_catalogo.perecivel`; `processos_itens.beneficio_mpe` (NENHUM, EXCLUSIVO, COTA_RESERVADA). A tabela `equivalencias_regimes` recebe as equivalências entre as modalidades da Lei 8.666/10.520 e da Lei 14.133 |
 | Contratos e atas | `contratos`, `contratos_itens`, `contratos_aditivos`, `contratos_execucao_financeira`, `atas_registro_precos`, `atas_itens`, `atas_participantes`, `atas_utilizacoes` |
 | Acesso | `users`, `perfis`, `permissoes`, `perfil_permissao`, `usuario_orgaos`, `personal_access_tokens` |
 | Inteligência e administração | `glossario_indicadores`, `configuracoes`, `importacoes`, `importacoes_erros`, `integracoes`, `logs_sincronizacao`, `logs_auditoria`, `historico_alteracoes`, `arquivos_anexos`, `consultas_salvas`, `agregados_compras_mensal` |
@@ -95,6 +96,17 @@ Todas estão no glossário (`glossario_indicadores`, endpoint `/api/glossario`) 
 - **Concentração de fornecedores**: participação dos 5 e 10 maiores, índice HHI (baixa < 1.500, moderada até 2.500, alta acima) e sinalizadores de unidades em que um fornecedor supera `fornecedores.limite_concentracao` (padrão 30%) do valor contratado, com ao menos 2 fornecedores e 5 processos. São sinais de necessidade de análise, não conclusões.
 - **Fases do processo**: o rito muda conforme o procedimento (`App\Support\FasesProcesso`). Licitações têm as 11 fases; dispensa, inexigibilidade, adesão, credenciamento e Chamada Pública PNAE têm ritos reduzidos.
 - **Período anterior**: para presets e período personalizado, desloca o intervalo pelo mesmo tamanho. Para seleção de anos na árvore, desloca pelo número de anos. Em "todo o histórico" não há comparação.
+
+#### Etapa 3A (seções 9 a 15)
+
+- **MPE**: MEI, ME e EPP (grupo `MPE` de `portes_empresariais`). Produtores familiares (PAF) e cooperativas (COOP) ficam em categoria própria, fora das MPE. Os percentuais usam o valor contratado dos itens com fornecedor informado. *Compras exclusivas* e *cota reservada* vêm de `processos_itens.beneficio_mpe`. "Fornecedor local" é o sediado em Roraima.
+- **Alimentos**: item com `categoria_alimento` ou processo de natureza "Gêneros alimentícios". Preço médio = Σ adjudicado / Σ quantidade, sempre por item **e** unidade de fornecimento. *Agricultura familiar* = Chamada Pública PNAE ou fornecedor PAF/cooperativa.
+- **PNAE**: o mínimo legal (`pnae.percentual_minimo_af`, padrão 30%, Lei 11.947/2009, art. 14) incide sobre os repasses do FNDE, que ainda não estão integrados. O painel mostra uma **aproximação**: participação da agricultura familiar no valor contratado de alimentos, identificada como tal na tela.
+- **Licitações para RP**: grandeza principal = valor adjudicado dos processos com `registro_precos`. Economia = estimado − adjudicado nos itens com os dois valores. Os gráficos "RP Sim x Não" ignoram o filtro global de RP, porque comparam os dois grupos. O gráfico de valor e nº de itens por ano foi separado em dois (sem eixo duplo).
+- **Aquisições por RP**: registrado = Σ qtd. registrada × unitário registrado; estimado = Σ qtd. registrada × unitário estimado; comprado = Σ `atas_utilizacoes.valor_total`; economia efetiva = Σ qtd. utilizada × (unitário estimado − unitário registrado); % utilizado = comprado / registrado. Por órgão: % saldo = (previsto − adquirido) / previsto, com previsto = Σ quantidade prevista × unitário registrado. As três tabelas filtram umas às outras (`ata_id`, `item_id`, `unidade_id`).
+- **Sinalizadores das atas**: utilização acima de 100% (algum item usado além da quantidade registrada), vencimento próximo (`atas.dias_alerta_vencimento`), alta (`atas.utilizacao_alta`, 80%) e baixa (`atas.utilizacao_baixa`, 30%) utilização. Indicam necessidade de análise, nunca irregularidade.
+- **Sistemática**: valores e economia vêm dos itens; situação, forma eletrônica/presencial e tempo vêm dos processos. % disputa efetiva = processos com 2 ou mais participantes. Tempo médio = abertura → homologação nos concluídos. A série comparável soma cada modalidade antiga à equivalente da Lei 14.133 sem alterar a classificação original.
+- **Mapas**: malha municipal do IBGE (pacote `ibge-cidades-com-poligonos`, licença ISC) simplificada para os 15 municípios de Roraima, e UFs do pacote `@svg-maps/brazil` (CC BY 4.0), em `frontend/src/assets/geo/mapas.json`. A atribuição aparece no rodapé do painel. As regiões de planejamento vêm de `regioes_planejamento`.
 
 ## 3. Estrutura de diretórios
 
@@ -141,8 +153,9 @@ painel-compras/
 | Etapa | Escopo | Situação |
 |---|---|---|
 | 1. Fundação | Estrutura, banco, autenticação e perfis, layout institucional (cabeçalho de período, rodapé NEXMIND, modo escuro), 13 filtros globais, Dashboard Geral com indicadores, gráficos e detalhamento | Entregue |
-| 2. Compras | Compras Totais (10 gráficos e ranking), Panorama por unidade contratante (14 colunas, exportação Excel/CSV/PDF), Licitações e Processos com fases e itens, Fornecedores (ranking, concentração, ficha), Órgãos e Unidades, filtro cruzado | **Entregue neste PR** |
-| 3. Inteligência | Painéis geográfico (UF, região, município), por natureza/classe e por sistemática (seções 9 a 11), MPE, Alimentos/PNAE, Licitações para RP (8 gráficos), Aquisições por RP (3 tabelas, sinalizadores), Itens Adjudicados, Catálogo, Compras por Classe, Análise do Total Comprado (árvore de decomposição, amparo legal), Análise de Preços | |
+| 2. Compras | Compras Totais (10 gráficos e ranking), Panorama por unidade contratante (14 colunas, exportação Excel/CSV/PDF), Licitações e Processos com fases e itens, Fornecedores (ranking, concentração, ficha), Órgãos e Unidades, filtro cruzado | Entregue |
+| 3A. Inteligência | Painéis geográfico (mapas de RR e do Brasil, região, município), por natureza/classe (ranking dos 50 itens, evolução de preços) e por sistemática (equivalência entre regimes), MPE, Alimentos/PNAE, Licitações para RP (12 indicadores, 8 gráficos), Aquisições por RP (14 indicadores, 3 tabelas cruzadas, sinalizadores) | **Entregue neste PR** |
+| 3B. Inteligência | Itens Adjudicados, Catálogo, Compras por Classe, Análise do Total Comprado (árvore de decomposição, amparo legal), Análise de Preços | |
 | 4. Planejamento e Contratos | PCA, Contratos e aditivos, Relatórios (Excel, CSV, PDF com rodapé NEXMIND), Administração | |
 | 5. Integração | Importação XLSX/CSV/JSON com fila, PNCP, Compras.gov.br, sistema financeiro estadual | |
 | 6. IA | Consultas em linguagem natural com provedor configurável (local ou API opcional) | |
