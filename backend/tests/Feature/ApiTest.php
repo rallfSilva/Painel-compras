@@ -32,9 +32,9 @@ class ApiTest extends TestCase
 
         $this->getJson('/api/dashboard/indicadores', ['Authorization' => "Bearer $token"])
             ->assertOk()
-            ->assertJsonCount(21, 'indicadores')
-            ->assertJsonPath('indicadores.11.codigo', 'total_empenhado')
-            ->assertJsonPath('indicadores.11.informado', false);
+            ->assertJsonCount(22, 'indicadores')
+            ->assertJsonPath('indicadores.12.codigo', 'total_empenhado')
+            ->assertJsonPath('indicadores.12.informado', false);
     }
 
     public function test_login_invalido(): void

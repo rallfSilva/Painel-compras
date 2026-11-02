@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Services\AgregacaoService;
+use App\Support\FasesProcesso;
 use App\Support\Rastreabilidade;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -323,6 +324,9 @@ class DemonstrativoSeeder extends Seeder
                     'criterio_julgamento' => in_array($codigoSist, ['PREGAO', 'CONCORRENCIA'], true) ? 'MENOR PREÇO' : null,
                     'eletronico' => $eletronico, 'registro_precos' => $rp, 'julgamento_lote' => mt_rand(1, 100) <= 15,
                     'situacao' => $situacao, 'quantidade_participantes' => $s->com_disputa ? mt_rand(1, 14) : 1,
+                    'data_sessao' => in_array($codigoSist, ['PREGAO', 'CONCORRENCIA'], true) ? $data : null,
+                    'responsavel' => sprintf('Servidor Demonstrativo %02d', mt_rand(1, 40)),
+                    'agente_contratacao' => in_array($codigoSist, ['PREGAO', 'CONCORRENCIA', 'DISPENSA'], true) ? sprintf('Agente de Contratação Demonstrativo %02d', mt_rand(1, 25)) : null,
                 ] + $this->base());
 
                 $linhas = [];
@@ -353,7 +357,7 @@ class DemonstrativoSeeder extends Seeder
                         'valor_unitario_estimado' => $unitEst, 'valor_unitario_adjudicado' => $unitAdj,
                         'valor_total_estimado' => $totEst, 'valor_total_adjudicado' => $totAdj, 'valor_total_homologado' => $totAdj,
                         'valor_total_contratado' => $contratado, 'fornecedor_id' => $comResultado ? $vencedor : null,
-                        'data_adjudicacao' => $comResultado ? $data->addDays(mt_rand(5, 30)) : null,
+                        'data_adjudicacao' => $comResultado ? $data->addDays(mt_rand(5, 30))->min($hoje) : null,
                         'situacao' => $comResultado ? ($contratado !== null ? 'CONTRATADO' : 'HOMOLOGADO') : ($itemDeserto ? 'DESERTO' : ($situacao === 'EM_ANDAMENTO' ? 'EM_ANDAMENTO' : $situacao)),
                     ] + $this->base();
                     $somas['est'] += $totEst;
@@ -362,6 +366,7 @@ class DemonstrativoSeeder extends Seeder
                     $somas['con'] += $contratado ?? 0;
                 }
                 DB::table('processos_itens')->insert($linhas);
+                $temContrato = false;
                 DB::table('processos')->where('id', $processoId)->update([
                     'valor_estimado' => $somas['est'],
                     'valor_adjudicado' => $temResultado ? $somas['adj'] : null,
@@ -369,7 +374,11 @@ class DemonstrativoSeeder extends Seeder
                     'valor_contratado' => $temResultado && $somas['con'] > 0 ? $somas['con'] : null,
                 ]);
 
+                $this->participantes($processoId, $situacao, (bool) $s->com_disputa, $codigoSist === 'CHAMADA_PNAE' ? $fornecedores['paf'] : $fornecedores['geral']);
+
                 if (! $temResultado) {
+                    $this->fases($processoId, $codigoSist, $situacao, $data, false, false);
+
                     continue;
                 }
 
@@ -407,8 +416,89 @@ class DemonstrativoSeeder extends Seeder
                         'data_assinatura' => $inicio, 'vigencia_inicio' => $inicio, 'vigencia_fim' => $fim,
                         'situacao' => $fim->greaterThanOrEqualTo($hoje) ? 'VIGENTE' : 'ENCERRADO',
                     ] + $this->base());
+                    $temContrato = true;
                 }
+                $this->fases($processoId, $codigoSist, $situacao, $data, $somas['con'] > 0, $temContrato);
             }
         }
+    }
+
+    /**
+     * Licitantes do processo: vencedores dos itens e, nos procedimentos com disputa, outros participantes
+     * até a quantidade informada no processo.
+     */
+    private function participantes(int $processoId, string $situacao, bool $comDisputa, array $lista): void
+    {
+        if (in_array($situacao, ['DESERTO', 'REVOGADO', 'EM_ANDAMENTO'], true)) {
+            DB::table('processos')->where('id', $processoId)->update(['quantidade_participantes' => $situacao === 'DESERTO' ? 0 : null]);
+
+            return;
+        }
+        $vencedores = DB::table('processos_itens')->where('processo_id', $processoId)->whereNotNull('fornecedor_id')
+            ->groupBy('fornecedor_id')->selectRaw('fornecedor_id, SUM(valor_total_adjudicado) AS total')->pluck('total', 'fornecedor_id')->all();
+        $alvo = (int) DB::table('processos')->where('id', $processoId)->value('quantidade_participantes');
+        $alvo = $comDisputa ? max($alvo, count($vencedores)) : max(1, count($vencedores));
+
+        $linhas = [];
+        foreach ($vencedores as $id => $total) {
+            $linhas[$id] = ['processo_id' => $processoId, 'fornecedor_id' => $id, 'vencedor' => true, 'habilitado' => true,
+                'valor_proposta' => round((float) $total, 2)] + $this->base();
+        }
+        $tentativas = 0;
+        while (count($linhas) < $alvo && $tentativas++ < 50) {
+            $id = $lista[array_rand($lista)];
+            if (! isset($linhas[$id])) {
+                $linhas[$id] = ['processo_id' => $processoId, 'fornecedor_id' => $id, 'vencedor' => false,
+                    'habilitado' => mt_rand(1, 100) <= 85, 'valor_proposta' => null] + $this->base();
+            }
+        }
+        if ($linhas) {
+            DB::table('processos_participantes')->insert(array_values($linhas));
+        }
+        DB::table('processos')->where('id', $processoId)->update(['quantidade_participantes' => count($linhas)]);
+    }
+
+    /** Fases concluídas do processo, conforme o rito do procedimento e a situação. */
+    private function fases(int $processoId, string $sistematica, string $situacao, CarbonImmutable $abertura, bool $contratado, bool $temContrato): void
+    {
+        $rito = FasesProcesso::doProcedimento($sistematica);
+        $ate = match ($situacao) {
+            'CONCLUIDO' => $temContrato ? 'EXECUCAO' : ($contratado ? 'CONTRATACAO' : 'HOMOLOGACAO'),
+            'DESERTO' => in_array('PROPOSTAS', $rito, true) ? 'PROPOSTAS' : 'DIVULGACAO',
+            'FRACASSADO' => in_array('HABILITACAO', $rito, true) ? 'HABILITACAO' : 'JULGAMENTO',
+            'REVOGADO', 'ANULADO' => 'JULGAMENTO',
+            default => $rito[mt_rand(1, max(1, count($rito) - 4))],
+        };
+        $limite = array_search($ate, $rito, true);
+        $limite = $limite === false ? count($rito) - 1 : $limite;
+
+        $inicio = $abertura->subDays(mt_rand(30, 90));
+        $linhas = [];
+        foreach (array_slice($rito, 0, $limite + 1) as $i => $fase) {
+            $duracao = match ($fase) {
+                'PLANEJAMENTO' => mt_rand(10, 40), 'PREPARATORIA' => mt_rand(10, 30), 'DIVULGACAO' => mt_rand(8, 15),
+                'EXECUCAO' => mt_rand(180, 360), default => mt_rand(1, 10),
+            };
+            $referencia = CarbonImmutable::parse('2026-10-30');
+            if ($inicio->greaterThan($referencia)) {
+                break; // fases futuras ainda não começaram
+            }
+            $fim = $inicio->addDays($duracao);
+            $emCurso = ($situacao === 'EM_ANDAMENTO' && $i === $limite) || $fim->greaterThan($referencia);
+            $linhas[] = ['processo_id' => $processoId, 'fase' => $fase, 'data_inicio' => $inicio,
+                'data_fim' => $emCurso ? null : $fim, 'observacao' => null,
+                'created_at' => $this->agora, 'updated_at' => $this->agora];
+            $inicio = $inicio->addDays($duracao);
+        }
+        DB::table('processos_fases')->insert($linhas);
+        $dados = ['fase_atual' => $ate];
+        if ($situacao === 'CONCLUIDO') {
+            $adj = DB::table('processos_itens')->where('processo_id', $processoId)->selectRaw('MIN(data_adjudicacao) AS ini, MAX(data_adjudicacao) AS fim')->first();
+            if ($adj?->ini) {
+                $dados['data_adjudicacao'] = $adj->ini;
+                $dados['data_homologacao'] = CarbonImmutable::parse($adj->fim)->addDays(mt_rand(1, 10))->min(CarbonImmutable::parse('2026-10-30'))->toDateString();
+            }
+        }
+        DB::table('processos')->where('id', $processoId)->update($dados);
     }
 }

@@ -48,7 +48,7 @@ export function CartaoIndicador({ indicador, destaque, aoAbrir, podeAbrir }: {
             <span className="truncate">ant.: {formatarPorUnidade(valor_anterior, unidade)}</span>
           </>
         ) : (
-          <span className="truncate">{!informado ? 'Fonte ainda não integrada' : 'Sem comparação de período'}</span>
+          <span className="truncate">{!informado ? motivoNaoInformado(indicador.codigo) : 'Sem comparação de período'}</span>
         )}
       </div>
     </>
@@ -65,4 +65,11 @@ export function CartaoIndicador({ indicador, destaque, aoAbrir, podeAbrir }: {
   ) : (
     <div className={classes}>{conteudo}</div>
   )
+}
+
+/** Explica por que o indicador está sem valor: fonte não integrada ou nenhum registro elegível no recorte. */
+function motivoNaoInformado(codigo: string): string {
+  if (['total_empenhado', 'total_liquidado', 'total_pago'].includes(codigo)) return 'Fonte ainda não integrada'
+  if (codigo === 'economia' || codigo === 'percentual_economia') return 'Sem itens comparáveis no recorte'
+  return 'Sem registros no recorte'
 }

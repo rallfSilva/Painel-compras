@@ -12,7 +12,7 @@ class DashboardService
     /** Ordem de exibição (seção 6.1). */
     public const ORDEM = [
         'total_estimado', 'total_contratado', 'economia', 'percentual_economia', 'unidades_compradoras',
-        'itens_catalogo', 'itens_comprados', 'processos', 'fornecedores', 'total_licitado', 'total_homologado',
+        'itens_catalogo', 'itens_comprados', 'processos', 'fornecedores', 'total_licitado', 'total_adjudicado', 'total_homologado',
         'total_empenhado', 'total_liquidado', 'total_pago', 'qtd_licitacoes', 'qtd_dispensas',
         'qtd_inexigibilidades', 'qtd_chamadas_publicas', 'qtd_atas', 'contratos_vigentes', 'contratos_vencendo',
     ];

@@ -21,7 +21,7 @@ class LimparDemonstrativos extends Command
         // Ordem respeita as chaves estrangeiras
         $tabelas = [
             'atas_utilizacoes', 'contratos_execucao_financeira', 'contratos_aditivos', 'contratos', 'atas_registro_precos',
-            'processos_itens', 'processos', 'fornecedores', 'itens_catalogo', 'classes_materiais', 'grupos_materiais',
+            'processos_participantes', 'processos_itens', 'processos', 'fornecedores', 'itens_catalogo', 'classes_materiais', 'grupos_materiais',
             'unidades_compradoras', 'orgaos', 'unidades_superiores',
         ];
         DB::transaction(function () use ($tabelas) {
