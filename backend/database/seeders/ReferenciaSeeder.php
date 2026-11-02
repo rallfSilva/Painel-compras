@@ -216,6 +216,8 @@ class ReferenciaSeeder extends Seeder
             ['economia.incluir_sem_disputa', '0', 'Incluir procedimentos sem disputa de preço (PNAE, credenciamento, inexigibilidade) no % de economia'],
             ['contratos.dias_alerta_vencimento', '90', 'Dias para considerar um contrato próximo do vencimento'],
             ['atas.dias_alerta_vencimento', '90', 'Dias para considerar uma ata próxima do vencimento'],
+            ['precos.minimo_observacoes', '3', 'Mínimo de preços do mesmo item, unidade de fornecimento e ano para formar a referência estadual'],
+            ['fornecedores.limite_concentracao', '30', 'Percentual do valor contratado de uma unidade, por um único fornecedor, a partir do qual a concentração é sinalizada para análise'],
         ] as [$k, $v, $d]) {
             DB::table('configuracoes')->updateOrInsert(['chave' => $k], ['valor' => $v, 'descricao' => $d, 'created_at' => $agora, 'updated_at' => $agora]);
         }

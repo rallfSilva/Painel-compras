@@ -1,4 +1,4 @@
-# API REST — Etapa 1
+# API REST — Etapas 1 e 2
 
 Base: `/api`. Respostas em JSON. Exceto o login, toda rota exige `Authorization: Bearer <token>`.
 
@@ -52,7 +52,7 @@ Opções de cálculo: `economia_base=adjudicado|homologado|contratado` e `inclui
 
 | Método | Rota | Permissão | Descrição |
 |---|---|---|---|
-| GET | `/dashboard/indicadores` | `dashboard.ver` | 21 indicadores com `valor`, `valor_anterior`, `variacao_percentual`, `tendencia`, `informado` e `explicacao`. |
+| GET | `/dashboard/indicadores` | `dashboard.ver` | 22 indicadores com `valor`, `valor_anterior`, `variacao_percentual`, `tendencia`, `informado` e `explicacao`. |
 | GET | `/dashboard/graficos` | `dashboard.ver` | `evolucao_anual`, `por_sistematica`, `top_unidades`, `por_grupo_porte`. |
 | GET | `/dashboard/indicadores/{codigo}/registros?pagina=&por_pagina=` | `registros.ver` | Registros que compõem o indicador, com os mesmos filtros. O CPF de pessoa física sai mascarado sem `dados_pessoais.ver`. |
 
@@ -62,3 +62,22 @@ Exemplo:
 curl -H "Authorization: Bearer $TOKEN" \
   "http://sic-selc.local/api/dashboard/indicadores?periodo=ano_atual&f[unidade][]=o:3&f[rp][]=sim"
 ```
+
+## Compras (Etapa 2)
+
+Todas as rotas aceitam os parâmetros de filtro globais. As listagens aceitam `pagina`, `por_pagina` (5 a 100), `ordem`, `direcao` (`asc`/`desc`) e `busca`. Com `exportar=1`, perfis com `relatorios.exportar` podem pedir até 5.000 linhas por página, para a exportação.
+
+| Método | Rota | Permissão | Descrição |
+|---|---|---|---|
+| GET | `/compras/graficos` | `dashboard.ver` | Evolução anual, compras por órgão, modalidade, natureza, município, fornecedor e grupo de materiais, porte, com e sem disputa, e ranking das 20 maiores unidades. Cada linha agrupada traz `filtro` e `chave` para o filtro cruzado. |
+| GET | `/compras/panorama?metrica_disputa=quantidade\|valor&regiao_id=` | `dashboard.ver` | Panorama por unidade contratante (14 colunas), total geral, faixas dos indicadores visuais e lista de regiões. |
+| GET | `/orgaos/arvore` | `dashboard.ver` | Unidade superior > órgão > unidade compradora, com contratado, %, processos e fornecedores. |
+| GET | `/unidades/{id}` | `dashboard.ver` | Ficha da unidade compradora: cadastro, indicadores, evolução e principais modalidades, fornecedores e grupos. |
+| GET | `/processos?situacao[]=&com_resumo=1` | `registros.ver` | Lista de processos. Com `com_resumo=1`, inclui quantidades por situação e tempo médio de conclusão. |
+| GET | `/processos/{id}` | `registros.ver` | Ficha do processo (campos da seção 21), fases, itens, participantes, atas, contratos e anexos. |
+| GET | `/itens?situacao[]=` | `registros.ver` | Itens dos processos. |
+| GET | `/fornecedores` | `registros.ver` | Ranking de fornecedores por valor contratado. |
+| GET | `/fornecedores/concentracao` | `dashboard.ver` | Top 5, top 10, índice HHI e sinalizadores de concentração por unidade. |
+| GET | `/fornecedores/{id}` | `registros.ver` | Ficha do fornecedor e histórico de fornecimento. CPF, endereço, e-mail e telefone de pessoa física saem protegidos sem `dados_pessoais.ver`. |
+
+Perfis restritos por órgão só veem dados e fichas dos seus órgãos.

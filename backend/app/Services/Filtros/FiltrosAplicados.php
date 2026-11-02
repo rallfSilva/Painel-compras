@@ -104,6 +104,24 @@ final class FiltrosAplicados
         };
     }
 
+    /**
+     * Mesmos filtros, com a seleção de um filtro substituída (ou removida, com lista vazia).
+     * Usado no detalhamento de uma unidade, fornecedor etc. e no filtro cruzado.
+     *
+     * @param  list<string>  $valores
+     */
+    public function com(string $filtro, array $valores): self
+    {
+        $selecoes = $this->selecoes;
+        if ($valores) {
+            $selecoes[$filtro] = $valores;
+        } else {
+            unset($selecoes[$filtro]);
+        }
+
+        return new self($this->periodo, $this->dataInicio, $this->dataFim, $selecoes, $this->orgaosPermitidos, $this->hoje);
+    }
+
     public function semPeriodo(): self
     {
         $selecoes = $this->selecoes;

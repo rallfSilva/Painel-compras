@@ -47,7 +47,7 @@ Decisões principais:
 - **Ausência ≠ zero**: valores não informados ficam `NULL` e a API devolve `null` ("Não informado").
 - **Dados fictícios separados**: `ficticio = true`. A interface mostra um aviso enquanto eles existirem e `php artisan sic:limpar-demonstrativos` os remove.
 
-### 2.2 Tabelas (Etapa 1)
+### 2.2 Tabelas (Etapas 1 e 2)
 
 | Grupo | Tabelas |
 |---|---|
@@ -56,7 +56,7 @@ Decisões principais:
 | Fornecedores | `portes_empresariais`, `fornecedores`, `fornecedores_historico` |
 | Classificações | `regimes_legais`, `amparos_legais`, `classificacoes_modalidades`, `sistematicas_aquisicao`, `formas_aquisicao`, `classificacoes_natureza`, `naturezas_despesa`, `elementos_despesa`, `subelementos_despesa`, `equivalencias_regimes` |
 | Catálogo | `catalogos`, `grupos_materiais`, `classes_materiais`, `unidades_medida`, `itens_catalogo` |
-| Compras | `processos`, `processos_fases`, `processos_itens` |
+| Compras | `processos`, `processos_fases`, `processos_itens`, `processos_participantes` (Etapa 2: licitantes, para participação e vitórias dos fornecedores) |
 | Contratos e atas | `contratos`, `contratos_itens`, `contratos_aditivos`, `contratos_execucao_financeira`, `atas_registro_precos`, `atas_itens`, `atas_participantes`, `atas_utilizacoes` |
 | Acesso | `users`, `perfis`, `permissoes`, `perfil_permissao`, `usuario_orgaos`, `personal_access_tokens` |
 | Inteligência e administração | `glossario_indicadores`, `configuracoes`, `importacoes`, `importacoes_erros`, `integracoes`, `logs_sincronizacao`, `logs_auditoria`, `historico_alteracoes`, `arquivos_anexos`, `consultas_salvas`, `agregados_compras_mensal` |
@@ -89,6 +89,11 @@ Todas estão no glossário (`glossario_indicadores`, endpoint `/api/glossario`) 
 - **% Economia**: economia / estimado dos mesmos itens comparáveis × 100.
 - **Contratos vigentes e próximos do vencimento**: situação na data de hoje. Usam os filtros de órgão, fornecedor etc., mas não o período. O prazo de alerta é configurável (padrão 90 dias).
 - **Empenhado, liquidado e pago**: `null` enquanto `contratos_execucao_financeira` estiver vazia, ou seja, sem integração com o sistema financeiro.
+- **Panorama por unidade contratante (Etapa 2)**: *Total comprado* = soma do valor contratado dos itens. *% MPE*, *% no Estado* e *% na região* usam como base o valor contratado elegível (itens com valor contratado e fornecedor informado). *% na região* considera a região escolhida na tela ou, sem escolha, a mesma região de planejamento do comprador. *% com disputa* é calculado por quantidade de processos ou por valor, conforme escolha explícita na tela. *% eletrônicos* = processos eletrônicos / processos.
+- **Mediana da diferença em relação ao Estado**: para cada preço unitário pago pela unidade, compara com a mediana dos preços do mesmo item de catálogo, mesma unidade de fornecimento e mesmo ano pagos pelas **demais** unidades (mínimo configurável em `precos.minimo_observacoes`, padrão 3). A coluna mostra a mediana dessas diferenças. Itens sem código de catálogo não são comparados.
+- **Indicadores visuais do Panorama**: faixas verde/amarelo/vermelho definidas em `PanoramaService::FAIXAS` e explicadas no tooltip de cada sinal. O sinal sempre tem ícone e rótulo, nunca só cor.
+- **Concentração de fornecedores**: participação dos 5 e 10 maiores, índice HHI (baixa < 1.500, moderada até 2.500, alta acima) e sinalizadores de unidades em que um fornecedor supera `fornecedores.limite_concentracao` (padrão 30%) do valor contratado, com ao menos 2 fornecedores e 5 processos. São sinais de necessidade de análise, não conclusões.
+- **Fases do processo**: o rito muda conforme o procedimento (`App\Support\FasesProcesso`). Licitações têm as 11 fases; dispensa, inexigibilidade, adesão, credenciamento e Chamada Pública PNAE têm ritos reduzidos.
 - **Período anterior**: para presets e período personalizado, desloca o intervalo pelo mesmo tamanho. Para seleção de anos na árvore, desloca pelo número de anos. Em "todo o histórico" não há comparação.
 
 ## 3. Estrutura de diretórios
@@ -98,15 +103,16 @@ painel-compras/
 ├── backend/                         Laravel 12
 │   ├── app/
 │   │   ├── Console/Commands/        sic:limpar-demonstrativos
-│   │   ├── Http/Controllers/Api/    Auth, Meta, Filtro, Dashboard
+│   │   ├── Http/Controllers/Api/    Auth, Meta, Filtro, Dashboard, Compras, Processo, Fornecedor, Orgao
 │   │   ├── Http/Middleware/         ExigePermissao, CabecalhosSeguranca
 │   │   ├── Models/                  um model por tabela de domínio
 │   │   ├── Services/
 │   │   │   ├── Filtros/             FiltrosAplicados, FiltroService, OpcoesFiltroService
 │   │   │   ├── Indicadores/         IndicadorService, DashboardService, RegistrosService, OpcoesCalculo
+│   │   │   ├── Compras/             ComprasTotais, Panorama, Processos, Itens, Fornecedores, Orgaos
 │   │   │   ├── AgregacaoService.php
 │   │   │   └── Configuracoes.php
-│   │   └── Support/Rastreabilidade.php
+│   │   └── Support/                 Rastreabilidade, FasesProcesso, DadosPessoais
 │   ├── database/migrations/         modelo de dados
 │   ├── database/seeders/            Referencia, Acesso, Glossario, Demonstrativo
 │   ├── public/app/                  build do frontend (gerado)
@@ -116,13 +122,16 @@ painel-compras/
 │   └── src/
 │       ├── assets/brand/            logos NEXMIND (rodapé)
 │       ├── components/
+│       │   ├── compras/             gráficos com filtro cruzado, Panorama, faixa de indicadores
 │       │   ├── dashboard/           cartões, gráficos, detalhamento de registros
+│       │   ├── detalhes/            fichas de unidade, processo e fornecedor
+│       │   ├── tabela/              tabela avançada, tabela paginada no servidor, exportação
 │       │   ├── filters/             árvore de filtros, busca, barra de filtros
 │       │   ├── layout/              menu lateral, cabeçalho, rodapé de créditos
 │       │   └── ui/                  componentes base (botão, cartão, diálogo...)
 │       ├── contexts/                autenticação, filtros globais, tema
 │       ├── lib/                     cliente da API, formatação, tipos
-│       ├── pages/                   Dashboard, Login, módulos planejados
+│       ├── pages/                   Dashboard, Compras Totais, Processos, Fornecedores, Órgãos, Login, módulos planejados
 │       └── modulos.ts               os 19 módulos do menu e suas etapas
 └── docs/                            arquitetura, instalação, API
 ```
@@ -131,9 +140,9 @@ painel-compras/
 
 | Etapa | Escopo | Situação |
 |---|---|---|
-| 1. Fundação | Estrutura, banco, autenticação e perfis, layout institucional (cabeçalho de período, rodapé NEXMIND, modo escuro), 13 filtros globais, Dashboard Geral com 21 indicadores, gráficos e detalhamento | **Entregue neste PR** |
-| 2. Compras | Compras Totais, Panorama por unidade contratante (14 colunas), Processos, Fornecedores, Órgãos e Unidades | Próxima |
-| 3. Inteligência | MPE, Alimentos/PNAE, Licitações para RP (8 gráficos), Aquisições por RP (3 tabelas, sinalizadores), Itens Adjudicados, Catálogo, Compras por Classe, Análise do Total Comprado (árvore de decomposição, amparo legal), Análise de Preços | |
+| 1. Fundação | Estrutura, banco, autenticação e perfis, layout institucional (cabeçalho de período, rodapé NEXMIND, modo escuro), 13 filtros globais, Dashboard Geral com indicadores, gráficos e detalhamento | Entregue |
+| 2. Compras | Compras Totais (10 gráficos e ranking), Panorama por unidade contratante (14 colunas, exportação Excel/CSV/PDF), Licitações e Processos com fases e itens, Fornecedores (ranking, concentração, ficha), Órgãos e Unidades, filtro cruzado | **Entregue neste PR** |
+| 3. Inteligência | Painéis geográfico (UF, região, município), por natureza/classe e por sistemática (seções 9 a 11), MPE, Alimentos/PNAE, Licitações para RP (8 gráficos), Aquisições por RP (3 tabelas, sinalizadores), Itens Adjudicados, Catálogo, Compras por Classe, Análise do Total Comprado (árvore de decomposição, amparo legal), Análise de Preços | |
 | 4. Planejamento e Contratos | PCA, Contratos e aditivos, Relatórios (Excel, CSV, PDF com rodapé NEXMIND), Administração | |
 | 5. Integração | Importação XLSX/CSV/JSON com fila, PNCP, Compras.gov.br, sistema financeiro estadual | |
 | 6. IA | Consultas em linguagem natural com provedor configurável (local ou API opcional) | |

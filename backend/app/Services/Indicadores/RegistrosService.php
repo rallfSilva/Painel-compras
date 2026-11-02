@@ -4,6 +4,7 @@ namespace App\Services\Indicadores;
 
 use App\Services\Filtros\FiltrosAplicados;
 use App\Services\Filtros\FiltroService;
+use App\Support\DadosPessoais;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -23,6 +24,7 @@ class RegistrosService
             'total_estimado', 'itens_comprados', 'itens_catalogo' => $this->itens($f, fn ($q) => $q->whereIn('pi.situacao', $res)),
             'total_contratado' => $this->itens($f, fn ($q) => $q->whereNotNull('pi.valor_total_contratado')),
             'total_homologado' => $this->itens($f, fn ($q) => $q->whereNotNull('pi.valor_total_homologado')),
+            'total_adjudicado' => $this->itens($f, fn ($q) => $q->whereNotNull('pi.valor_total_adjudicado')),
             'total_licitado' => $this->itens($f, fn ($q) => $q->whereIn('pi.situacao', $res)->where('s.tipo', 'LICITACAO')),
             'economia', 'percentual_economia' => $this->itens($f, function ($q) use ($res, $o) {
                 $q->whereIn('pi.situacao', $res)->whereNotNull('pi.valor_total_estimado')->whereNotNull($o->colunaReferencia());
@@ -50,15 +52,8 @@ class RegistrosService
         }
 
         $pag = $resultado->paginate($porPagina, ['*'], 'pagina', $pagina);
-        $pag->getCollection()->transform(function ($r) use ($verDadosPessoais) {
-            // CPF de pessoa física é dado pessoal (LGPD): mascarado sem a permissão dados_pessoais.ver
-            if (! $verDadosPessoais && isset($r->fornecedor_documento, $r->fornecedor_tipo) && $r->fornecedor_tipo === 'F') {
-                $r->fornecedor_documento = '***.'.substr($r->fornecedor_documento, 3, 3).'.***-**';
-            }
-            unset($r->fornecedor_tipo);
-
-            return $r;
-        });
+        // CPF de pessoa física é dado pessoal (LGPD): mascarado sem a permissão dados_pessoais.ver
+        $pag->getCollection()->transform(fn ($r) => DadosPessoais::mascararLinha($r, $verDadosPessoais));
 
         return $pag;
     }

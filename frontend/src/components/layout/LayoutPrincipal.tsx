@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 import { MenuLateral } from './MenuLateral'
 import { Cabecalho, useMeta } from './Cabecalho'
 import { RodapeCreditos } from './RodapeCreditos'
+import { AvisoFiltroCruzado } from './AvisoFiltroCruzado'
+import { DetalhesProvider } from '@/components/detalhes/DetalhesContext'
 
 function lerRecolhido() {
   try { return localStorage.getItem('sic-menu-recolhido') === '1' } catch { return false }
@@ -35,9 +37,12 @@ export function LayoutPrincipal() {
             </span>
           </div>
         )}
-        <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-6">
-          <Outlet />
+        <main className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 py-5 sm:px-6">
+          <DetalhesProvider>
+            <Outlet />
+          </DetalhesProvider>
         </main>
+        <AvisoFiltroCruzado />
         <RodapeCreditos />
       </div>
     </div>

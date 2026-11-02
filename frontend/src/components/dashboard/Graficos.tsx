@@ -5,8 +5,8 @@ import { formatarAbreviado, formatarMoeda, formatarNumero, formatarPercentual } 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-const COR = { s1: 'var(--serie-1)', s2: 'var(--serie-2)', s3: 'var(--serie-3)', neutra: 'var(--serie-neutra)', grade: 'var(--grade)' }
-const EIXO = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
+export const COR = { s1: 'var(--serie-1)', s2: 'var(--serie-2)', s3: 'var(--serie-3)', neutra: 'var(--serie-neutra)', grade: 'var(--grade)' }
+export const EIXO = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
 
 export interface Evolucao { ano: number; estimado: number | null; contratado: number | null; economia: number | null; percentual_economia: number | null; processos: number }
 export interface Sistematica { id: number; nome: string; contratado: number | null; processos: number }
@@ -14,7 +14,7 @@ export interface TopUnidade { id: number; nome: string; orgao: string; contratad
 export interface GrupoPorte { grupo: string; nome: string; contratado: number; percentual: number | null }
 
 /** Cartão de gráfico com alternância para visualização em tabela (acessibilidade). */
-function CartaoGrafico({ titulo, subtitulo, grafico, tabela, className }: { titulo: string; subtitulo?: string; grafico: ReactNode; tabela: ReactNode; className?: string }) {
+export function CartaoGrafico({ titulo, subtitulo, grafico, tabela, className }: { titulo: string; subtitulo?: string; grafico: ReactNode; tabela: ReactNode; className?: string }) {
   const [modo, setModo] = useState<'grafico' | 'tabela'>('grafico')
   return (
     <Card className={className}>
@@ -37,7 +37,7 @@ function CartaoGrafico({ titulo, subtitulo, grafico, tabela, className }: { titu
   )
 }
 
-function Tabela({ cabecalho, linhas }: { cabecalho: string[]; linhas: (string | number)[][] }) {
+export function Tabela({ cabecalho, linhas }: { cabecalho: string[]; linhas: (string | number)[][] }) {
   return (
     <table className="w-full text-xs">
       <thead className="sticky top-0 bg-muted text-left text-muted-foreground">
@@ -48,7 +48,7 @@ function Tabela({ cabecalho, linhas }: { cabecalho: string[]; linhas: (string | 
   )
 }
 
-function DicaGrafico({ active, payload, label, formatar }: { active?: boolean; payload?: { name: string; value: number | null; color: string }[]; label?: string | number; formatar: (v: number | null) => string }) {
+export function DicaGrafico({ active, payload, label, formatar }: { active?: boolean; payload?: { name: string; value: number | null; color: string }[]; label?: string | number; formatar: (v: number | null) => string }) {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-lg">
@@ -64,12 +64,12 @@ function DicaGrafico({ active, payload, label, formatar }: { active?: boolean; p
   )
 }
 
-export function GraficoEvolucao({ dados }: { dados: Evolucao[] }) {
+export function GraficoEvolucao({ dados, className = 'xl:col-span-2' }: { dados: Evolucao[]; className?: string }) {
   return (
     <CartaoGrafico
       titulo="Evolução anual das compras"
       subtitulo="Valor estimado e valor contratado dos itens com resultado (R$)"
-      className="xl:col-span-2"
+      className={className}
       grafico={
         <div className="h-[280px]">
           <ResponsiveContainer>
@@ -90,9 +90,10 @@ export function GraficoEvolucao({ dados }: { dados: Evolucao[] }) {
   )
 }
 
-export function GraficoEconomia({ dados }: { dados: Evolucao[] }) {
+export function GraficoEconomia({ dados, className }: { dados: Evolucao[]; className?: string }) {
   return (
     <CartaoGrafico
+      className={className}
       titulo="% de economia por exercício"
       subtitulo="Procedimentos com disputa de preço, salvo se a opção de incluir os demais estiver ativa"
       grafico={
@@ -168,14 +169,14 @@ export function GraficoPorte({ dados }: { dados: GrupoPorte[] }) {
   )
 }
 
-export function RankingUnidades({ dados }: { dados: TopUnidade[] }) {
+export function RankingUnidades({ dados, className = 'xl:col-span-2', aoClicar }: { dados: TopUnidade[]; className?: string; aoClicar?: (id: number) => void }) {
   const max = Math.max(...dados.map((d) => d.contratado), 1)
   return (
-    <Card className="xl:col-span-2">
+    <Card className={className}>
       <CardHeader>
         <div>
           <CardTitle>Ranking das unidades compradoras</CardTitle>
-          <p className="mt-0.5 text-xs text-muted-foreground">10 maiores por valor contratado</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{dados.length >= 20 ? '20' : '10'} maiores por valor contratado{aoClicar ? ' · clique para ver o detalhamento' : ''}</p>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
@@ -192,7 +193,8 @@ export function RankingUnidades({ dados }: { dados: TopUnidade[] }) {
           </thead>
           <tbody>
             {dados.map((d, i) => (
-              <tr key={d.id} className="border-b last:border-0">
+              <tr key={d.id} className={cn('border-b last:border-0', aoClicar && 'cursor-pointer hover:bg-muted/60')} onClick={aoClicar ? () => aoClicar(d.id) : undefined}
+                tabIndex={aoClicar ? 0 : undefined} onKeyDown={aoClicar ? (e) => { if (e.key === 'Enter') aoClicar(d.id) } : undefined}>
                 <td className="py-2 pr-2 text-muted-foreground tabular">{i + 1}</td>
                 <td className="py-2 pr-2 font-medium">{d.nome}</td>
                 <td className="py-2 pr-2 text-muted-foreground">{d.orgao}</td>

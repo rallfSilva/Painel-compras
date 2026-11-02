@@ -26,6 +26,11 @@ interface FiltrosCtx {
   limpar: () => void
   queryString: string
   totalAtivos: number
+  /** Filtro cruzado (seção 31): clicar em um gráfico ou linha aplica o filtro global correspondente. */
+  aplicarCruzado: (filtro: NomeFiltro, chave: string, rotulo: string) => void
+  ultimoCruzado: string | null
+  desfazerCruzado: () => void
+  dispensarCruzado: () => void
 }
 
 const Ctx = createContext<FiltrosCtx | null>(null)
@@ -103,10 +108,31 @@ export function FiltrosProvider({ children }: { children: ReactNode }) {
 
   const limpar = useCallback(() => setEstado(VAZIO), [])
 
+  const [anterior, setAnterior] = useState<{ estado: EstadoFiltros; rotulo: string } | null>(null)
+
+  const aplicarCruzado = useCallback((filtro: NomeFiltro, chave: string, rotulo: string) => {
+    const e = estado
+    const atuais = e.selecoes[filtro] ?? []
+    if (atuais.length === 1 && atuais[0] === chave) return
+    setAnterior({ estado: e, rotulo })
+    // Substitui a seleção do mesmo filtro, como no Power BI: o clique foca no elemento clicado.
+    setEstado({ ...e, selecoes: { ...e.selecoes, [filtro]: [chave] }, rotulos: { ...e.rotulos, [chave]: rotulo } })
+  }, [estado])
+
+  const desfazerCruzado = useCallback(() => {
+    if (anterior) setEstado(anterior.estado)
+    setAnterior(null)
+  }, [anterior])
+
+  const dispensarCruzado = useCallback(() => setAnterior(null), [])
+
   const totalAtivos = Object.values(estado.selecoes).reduce((t, l) => t + (l?.length ?? 0), 0) + (estado.periodo !== 'todo' ? 1 : 0)
 
   return (
-    <Ctx.Provider value={{ estado, definirPeriodo, definirSelecao, remover, limpar, queryString, totalAtivos }}>
+    <Ctx.Provider value={{
+      estado, definirPeriodo, definirSelecao, remover, limpar, queryString, totalAtivos,
+      aplicarCruzado, ultimoCruzado: anterior?.rotulo ?? null, desfazerCruzado, dispensarCruzado,
+    }}>
       {children}
     </Ctx.Provider>
   )
@@ -116,4 +142,17 @@ export function useFiltros() {
   const c = useContext(Ctx)
   if (!c) throw new Error('useFiltros fora do FiltrosProvider')
   return c
+}
+
+const PERIODOS: Record<string, string> = {
+  todo: 'Todo o histórico', ano_atual: 'Ano atual', ano_anterior: 'Ano anterior', ultimos_5: 'Últimos 5 anos', ultimos_10: 'Últimos 10 anos',
+}
+
+/** Descrição legível dos filtros ativos, para o cabeçalho das exportações e relatórios. */
+export function descreverFiltros(e: EstadoFiltros): string[] {
+  const out: string[] = []
+  if (e.periodo === 'personalizado') out.push(`Período: ${e.dataInicio || '…'} a ${e.dataFim || '…'}`)
+  else if (e.periodo !== 'todo') out.push(`Período: ${PERIODOS[e.periodo]}`)
+  for (const chaves of Object.values(e.selecoes)) for (const c of chaves ?? []) out.push(e.rotulos[c] ?? c)
+  return out
 }

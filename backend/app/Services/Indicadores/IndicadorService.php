@@ -50,6 +50,7 @@ class IndicadorService
         $r = $this->filtros->baseItens($f)->selectRaw("
             SUM(CASE WHEN $res THEN pi.valor_total_estimado END) AS total_estimado,
             SUM(pi.valor_total_contratado) AS total_contratado,
+            SUM(pi.valor_total_adjudicado) AS total_adjudicado,
             SUM(pi.valor_total_homologado) AS total_homologado,
             SUM(CASE WHEN $comparavel THEN pi.valor_total_estimado - $ref END) AS economia,
             SUM(CASE WHEN $comparavel THEN pi.valor_total_estimado END) AS _estimado_comparavel,
