@@ -2,7 +2,7 @@
 
 Plataforma de Business Intelligence de compras públicas da Secretaria de Estado de Licitação e Contratação de Roraima (SELC/RR).
 
-**Situação:** Etapas 1 (Fundação), 2 (Compras) e 3A (Inteligência) entregues: banco de dados, autenticação com 7 perfis, layout institucional, 13 filtros globais, Dashboard Geral, Compras Totais com painéis por estado/região (mapas), natureza/classe e sistemática, Panorama por unidade contratante, Compras de MPE, Compras de Alimentos/PNAE, Licitações e Aquisições por Registro de Preços, Licitações e Processos, Fornecedores e Órgãos e Unidades, com filtro cruzado e exportação para Excel, CSV e PDF. Veja o [plano de desenvolvimento](docs/ARQUITETURA.md#4-plano-de-desenvolvimento).
+**Situação:** Etapas 1 (Fundação), 2 (Compras), 3A e 3B (Inteligência) entregues: banco de dados, autenticação com 7 perfis, layout institucional, 13 filtros globais, Dashboard Geral, Compras Totais com painéis por estado/região (mapas), natureza/classe e sistemática, Panorama por unidade contratante, Compras de MPE, Compras de Alimentos/PNAE, Licitações e Aquisições por Registro de Preços, Itens Adjudicados, Catálogo de Bens e Serviços, Compras por Classe, Análise do Total Comprado (árvore de decomposição), Análise de Preços, Licitações e Processos, Fornecedores e Órgãos e Unidades, com filtro cruzado e exportação para Excel, CSV e PDF. Veja o [plano de desenvolvimento](docs/ARQUITETURA.md#4-plano-de-desenvolvimento).
 
 - Backend: Laravel 12 (PHP 8.2+), MySQL/MariaDB, Sanctum
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS, Radix UI, TanStack Query, Recharts

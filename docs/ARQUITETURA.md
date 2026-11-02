@@ -47,7 +47,7 @@ Decisões principais:
 - **Ausência ≠ zero**: valores não informados ficam `NULL` e a API devolve `null` ("Não informado").
 - **Dados fictícios separados**: `ficticio = true`. A interface mostra um aviso enquanto eles existirem e `php artisan sic:limpar-demonstrativos` os remove.
 
-### 2.2 Tabelas (Etapas 1 a 3A)
+### 2.2 Tabelas (Etapas 1 a 3B)
 
 | Grupo | Tabelas |
 |---|---|
@@ -63,6 +63,8 @@ Decisões principais:
 | Inteligência e administração | `glossario_indicadores`, `configuracoes`, `importacoes`, `importacoes_erros`, `integracoes`, `logs_sincronizacao`, `logs_auditoria`, `historico_alteracoes`, `arquivos_anexos`, `consultas_salvas`, `agregados_compras_mensal` |
 
 Ajuste em relação à lista do prompt: `licitacoes`, `licitacoes_resultados` e `itens_adjudicados` foram unificadas em `processos` e `processos_itens`. Uma licitação é um processo cuja sistemática é do tipo `LICITACAO`, e o item adjudicado é a linha de `processos_itens` com o resultado. Isso evita guardar o mesmo valor em duas tabelas. As tabelas do PCA (`pca*`) e de preços (`precos_referencias`, `historico_precos`) entram nas Etapas 3 e 4.
+
+Na Etapa 3B entra a tabela `itens_equivalencias` (item, equivalente, status PROPOSTA/VALIDADA/REJEITADA, justificativa, especificações diferentes, quem propôs, quem validou e quando). A migração preenche `itens_catalogo.descricao_normalizada` dos itens existentes.
 
 ### 2.3 Relacionamentos principais
 
@@ -107,6 +109,17 @@ Todas estão no glossário (`glossario_indicadores`, endpoint `/api/glossario`) 
 - **Sinalizadores das atas**: utilização acima de 100% (algum item usado além da quantidade registrada), vencimento próximo (`atas.dias_alerta_vencimento`), alta (`atas.utilizacao_alta`, 80%) e baixa (`atas.utilizacao_baixa`, 30%) utilização. Indicam necessidade de análise, nunca irregularidade.
 - **Sistemática**: valores e economia vêm dos itens; situação, forma eletrônica/presencial e tempo vêm dos processos. % disputa efetiva = processos com 2 ou mais participantes. Tempo médio = abertura → homologação nos concluídos. A série comparável soma cada modalidade antiga à equivalente da Lei 14.133 sem alterar a classificação original.
 - **Mapas**: malha municipal do IBGE (pacote `ibge-cidades-com-poligonos`, licença ISC) simplificada para os 15 municípios de Roraima, e UFs do pacote `@svg-maps/brazil` (CC BY 4.0), em `frontend/src/assets/geo/mapas.json`. A atribuição aparece no rodapé do painel. As regiões de planejamento vêm de `regioes_planejamento`.
+
+#### Etapa 3B (seções 16 a 19 e 24)
+
+- **Itens adjudicados**: apenas itens com resultado (adjudicado, homologado, contratado). % economia do item = (total estimado − total adjudicado) / total estimado × 100. CPF de pessoa física sai mascarado sem `dados_pessoais.ver`.
+- **Catálogo**: a descrição normalizada (`App\Support\Normalizador`) fica em maiúsculas, sem acentos e pontuação, com número e unidade juntos (5 KG → 5KG) e abreviações padronizadas (PCT → PACOTE, UNID → UN). *Duplicidade* = mesma descrição normalizada e mesma unidade de fornecimento. *Semelhante* = mesma classe e índice de Jaccard ≥ 50% entre os termos (só palavras de ligação são ignoradas, para que TAMANHO M e TAMANHO G não se confundam). *Equivalência* nunca é automática: é proposta e só vale depois de validação com justificativa; itens com especificações diferentes exigem confirmação explícita, e a decisão vai para `logs_auditoria`. Toda criação e edição grava o antes/depois em `historico_alteracoes`. O catálogo não segue os filtros globais. A importação em massa do catálogo fica para a Etapa 5.
+- **Compras por classe**: valor contratado por grupo e classe. Quantidades de unidades de fornecimento diferentes nunca são somadas; ao abrir a classe, quantidade e preço aparecem por item e unidade.
+- **Árvore de decomposição**: agregação no backend, um nível por vez (`/inteligencia/analise-total/decomposicao`). O caminho aberto vira condição exata (E) da consulta, sem substituir os filtros globais. Dimensões: ano, unidade superior, unidade contratante, grupo, classe, sistemática, forma, amparo, porte, UF do fornecedor e município comprador; sequência padrão Ano › Unidade › Grupo › Classe › Sistemática › Forma. Os registros de um nó são os itens adjudicados com o mesmo `caminho`.
+- **Rankings**: limites padrão 10 órgãos, 20 fornecedores, 50 itens, 20 classes, 10 municípios, 10 processos e 10 amparos, ajustáveis de 1 a 200.
+- **Compras recorrentes**: mesmo item e unidade em `compras.recorrencia_minima` processos ou mais (padrão 3). Indica oportunidade de planejamento conjunto ou RP, nunca fracionamento.
+- **Concentração**: HHI = Σ (participação % de cada fornecedor)², de 0 a 10.000, no total e por classe; a classe é sinalizada quando um fornecedor tem `fornecedores.limite_concentracao` (30%) ou mais.
+- **Análise de preços**: referência = valor unitário adjudicado de itens com resultado, do mesmo item **e** unidade de fornecimento, na janela `precos.janela_meses` (24) até a data de referência e, quando informada, na faixa de quantidade. Estatísticas: mínimo, máximo, média, mediana, desvio padrão amostral, CV = desvio / média × 100 e variação = (máx − mín) / mín × 100. Alertas: preço a `precos.alerta_mediana_pct` (30%) ou mais da mediana, CV ≥ `precos.alerta_cv_pct` (35%), menos de `precos.minimo_observacoes` (3) referências e mediana anual que sobe `precos.alerta_aumento_pct` (25%) ou mais. Todo alerta traz o aviso de que pede análise humana e não constitui conclusão sobre sobrepreço. A comparação estadual × nacional mostra "fonte não integrada" até a Etapa 5.
 
 ## 3. Estrutura de diretórios
 
@@ -154,8 +167,8 @@ painel-compras/
 |---|---|---|
 | 1. Fundação | Estrutura, banco, autenticação e perfis, layout institucional (cabeçalho de período, rodapé NEXMIND, modo escuro), 13 filtros globais, Dashboard Geral com indicadores, gráficos e detalhamento | Entregue |
 | 2. Compras | Compras Totais (10 gráficos e ranking), Panorama por unidade contratante (14 colunas, exportação Excel/CSV/PDF), Licitações e Processos com fases e itens, Fornecedores (ranking, concentração, ficha), Órgãos e Unidades, filtro cruzado | Entregue |
-| 3A. Inteligência | Painéis geográfico (mapas de RR e do Brasil, região, município), por natureza/classe (ranking dos 50 itens, evolução de preços) e por sistemática (equivalência entre regimes), MPE, Alimentos/PNAE, Licitações para RP (12 indicadores, 8 gráficos), Aquisições por RP (14 indicadores, 3 tabelas cruzadas, sinalizadores) | **Entregue neste PR** |
-| 3B. Inteligência | Itens Adjudicados, Catálogo, Compras por Classe, Análise do Total Comprado (árvore de decomposição, amparo legal), Análise de Preços | |
+| 3A. Inteligência | Painéis geográfico (mapas de RR e do Brasil, região, município), por natureza/classe (ranking dos 50 itens, evolução de preços) e por sistemática (equivalência entre regimes), MPE, Alimentos/PNAE, Licitações para RP (12 indicadores, 8 gráficos), Aquisições por RP (14 indicadores, 3 tabelas cruzadas, sinalizadores) | Entregue |
+| 3B. Inteligência | Itens Adjudicados, Catálogo (normalização, duplicidades, semelhantes, equivalências validadas, histórico), Compras por Classe, Análise do Total Comprado (árvore de decomposição, unidades, amparo legal, rankings, recorrência, concentração, variação de preços), Análise de Preços | **Entregue neste PR** |
 | 4. Planejamento e Contratos | PCA, Contratos e aditivos, Relatórios (Excel, CSV, PDF com rodapé NEXMIND), Administração | |
 | 5. Integração | Importação XLSX/CSV/JSON com fila, PNCP, Compras.gov.br, sistema financeiro estadual | |
 | 6. IA | Consultas em linguagem natural com provedor configurável (local ou API opcional) | |

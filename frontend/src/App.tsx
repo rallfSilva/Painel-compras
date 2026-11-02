@@ -17,6 +17,11 @@ const ComprasAlimentos = lazy(() => import('@/pages/ComprasAlimentos').then((m) 
 const LicitacoesRp = lazy(() => import('@/pages/LicitacoesRp').then((m) => ({ default: m.LicitacoesRp })))
 const AquisicoesRp = lazy(() => import('@/pages/AquisicoesRp').then((m) => ({ default: m.AquisicoesRp })))
 const Orgaos = lazy(() => import('@/pages/Orgaos').then((m) => ({ default: m.Orgaos })))
+const ItensAdjudicados = lazy(() => import('@/pages/ItensAdjudicados').then((m) => ({ default: m.ItensAdjudicados })))
+const Catalogo = lazy(() => import('@/pages/Catalogo').then((m) => ({ default: m.Catalogo })))
+const ComprasClasse = lazy(() => import('@/pages/ComprasClasse').then((m) => ({ default: m.ComprasClasse })))
+const AnaliseTotal = lazy(() => import('@/pages/AnaliseTotal').then((m) => ({ default: m.AnaliseTotal })))
+const AnalisePrecos = lazy(() => import('@/pages/AnalisePrecos').then((m) => ({ default: m.AnalisePrecos })))
 const aguardandoPagina = <div className="flex h-40 items-center justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
 
 /** Módulos já entregues; os demais exibem a página de módulo planejado. */
@@ -29,6 +34,11 @@ const PAGINAS: Record<string, ReactElement> = {
   processos: <Processos />,
   fornecedores: <Fornecedores />,
   orgaos: <Orgaos />,
+  'itens-adjudicados': <ItensAdjudicados />,
+  catalogo: <Catalogo />,
+  'compras-classe': <ComprasClasse />,
+  'analise-total': <AnaliseTotal />,
+  'analise-precos': <AnalisePrecos />,
 }
 import { MODULOS } from '@/modulos'
 

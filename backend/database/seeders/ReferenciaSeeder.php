@@ -235,6 +235,11 @@ class ReferenciaSeeder extends Seeder
             ['pnae.percentual_minimo_af', '30', 'Percentual mínimo dos recursos do PNAE a aplicar na agricultura familiar (Lei nº 11.947/2009, art. 14). Ajuste se a legislação mudar'],
             ['atas.utilizacao_baixa', '30', 'Percentual de utilização abaixo do qual uma ata é sinalizada como de baixa utilização'],
             ['atas.utilizacao_alta', '80', 'Percentual de utilização a partir do qual uma ata é sinalizada como de alta utilização'],
+            ['precos.janela_meses', '24', 'Janela, em meses até a data de referência, das compras usadas como referência de preço'],
+            ['precos.alerta_mediana_pct', '30', 'Desvio percentual de um preço em relação à mediana a partir do qual ele é sinalizado para análise'],
+            ['precos.alerta_cv_pct', '35', 'Coeficiente de variação (%) a partir do qual a dispersão dos preços é sinalizada para análise'],
+            ['precos.alerta_aumento_pct', '25', 'Aumento da mediana de um ano para o seguinte (%) a partir do qual o aumento é sinalizado para análise'],
+            ['compras.recorrencia_minima', '3', 'Número mínimo de processos com o mesmo item e unidade para considerar a compra recorrente'],
             ['fornecedores.limite_concentracao', '30', 'Percentual do valor contratado de uma unidade, por um único fornecedor, a partir do qual a concentração é sinalizada para análise'],
         ] as [$k, $v, $d]) {
             DB::table('configuracoes')->updateOrInsert(['chave' => $k], ['valor' => $v, 'descricao' => $d, 'created_at' => $agora, 'updated_at' => $agora]);

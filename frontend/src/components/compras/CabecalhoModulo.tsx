@@ -4,17 +4,17 @@ import { Button } from '@/components/ui/button'
 import { useIndicadores } from './FaixaIndicadores'
 
 /** Título do módulo com o período analisado e o botão de impressão. */
-export function CabecalhoModulo({ titulo, descricao, consulta, acoes }: { titulo: string; descricao?: string; consulta: string; acoes?: ReactNode }) {
+export function CabecalhoModulo({ titulo, descricao, consulta, acoes, semPeriodo }: { titulo: string; descricao?: string; consulta: string; acoes?: ReactNode; semPeriodo?: boolean }) {
   const q = useIndicadores(consulta)
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <h1 className="text-lg font-bold uppercase tracking-tight sm:text-xl">{titulo}</h1>
         {descricao && <p className="mt-0.5 text-sm text-muted-foreground">{descricao}</p>}
-        <p className="mt-0.5 text-sm text-muted-foreground">
+        {!semPeriodo && <p className="mt-0.5 text-sm text-muted-foreground">
           Período: <span className="font-medium text-foreground">{q.data?.periodo ?? '…'}</span>
           {q.data?.periodo_anterior && <> · comparado com {q.data.periodo_anterior}</>}
-        </p>
+        </p>}
       </div>
       <div className="no-print flex items-center gap-2">
         {acoes}
