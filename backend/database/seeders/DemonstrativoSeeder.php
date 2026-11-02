@@ -181,7 +181,7 @@ class DemonstrativoSeeder extends Seeder
                         'classe_id' => $cid, 'classificacao_natureza_id' => $nat[$natureza], 'subelemento_despesa_id' => $sub[$subelemento],
                         'unidade_medida_id' => $um[$unidade], 'tipo' => $tipo, 'codigo' => (string) $codigo,
                         'codigo_sufixo' => $codigo.'-'.$um[$unidade], 'descricao' => $descricao, 'descricao_normalizada' => $descricao,
-                    ] + $this->base());
+                    ] + self::categoriaAlimento($descricao) + $this->base());
                     $itens[] = [
                         'id' => $iid, 'codigo' => (string) $codigo, 'descricao' => $descricao, 'unidade_id' => $um[$unidade],
                         'preco' => (float) $preco, 'grupo' => $grupo, 'natureza' => $nat[$natureza], 'natureza_codigo' => $natureza,
@@ -357,6 +357,9 @@ class DemonstrativoSeeder extends Seeder
                         'valor_unitario_estimado' => $unitEst, 'valor_unitario_adjudicado' => $unitAdj,
                         'valor_total_estimado' => $totEst, 'valor_total_adjudicado' => $totAdj, 'valor_total_homologado' => $totAdj,
                         'valor_total_contratado' => $contratado, 'fornecedor_id' => $comResultado ? $vencedor : null,
+                        'beneficio_mpe' => in_array($codigoSist, ['PREGAO', 'DISPENSA'], true)
+                            ? ($totEst <= 80000 && mt_rand(1, 100) <= 55 ? 'EXCLUSIVO' : ($totEst > 500000 && mt_rand(1, 100) <= 25 ? 'COTA_RESERVADA' : 'NENHUM'))
+                            : 'NENHUM',
                         'data_adjudicacao' => $comResultado ? $data->addDays(mt_rand(5, 30))->min($hoje) : null,
                         'situacao' => $comResultado ? ($contratado !== null ? 'CONTRATADO' : 'HOMOLOGADO') : ($itemDeserto ? 'DESERTO' : ($situacao === 'EM_ANDAMENTO' ? 'EM_ANDAMENTO' : $situacao)),
                     ] + $this->base();
@@ -395,12 +398,13 @@ class DemonstrativoSeeder extends Seeder
                         'valor_estimado' => $somas['est'], 'valor_registrado' => $somas['adj'],
                     ] + $this->base());
                     foreach ($itensGravados as $ig) {
-                        DB::table('atas_itens')->insert([
+                        $ataItemId = DB::table('atas_itens')->insertGetId([
                             'ata_id' => $ataId, 'processo_item_id' => $ig->id, 'item_catalogo_id' => $ig->item_catalogo_id,
                             'fornecedor_id' => $ig->fornecedor_id, 'quantidade_registrada' => $ig->quantidade_adjudicada,
                             'valor_unitario_estimado' => $ig->valor_unitario_estimado, 'valor_unitario_registrado' => $ig->valor_unitario_adjudicado,
                             'created_at' => $this->agora, 'updated_at' => $this->agora,
                         ]);
+                        $this->usoDaAta($ataItemId, $ataId, $u['id'], $unidades, (float) $ig->quantidade_adjudicada, (float) $ig->valor_unitario_adjudicado, $inicio, $hoje);
                     }
                 }
 
@@ -500,5 +504,80 @@ class DemonstrativoSeeder extends Seeder
             }
         }
         DB::table('processos')->where('id', $processoId)->update($dados);
+    }
+
+    /** Categoria de alimento (seção 13) a partir da descrição do item demonstrativo. */
+    private static function categoriaAlimento(string $descricao): array
+    {
+        $mapa = [
+            'BANANA' => ['FRUTAS', true], 'LARANJA' => ['FRUTAS', true], 'TOMATE' => ['LEGUMES', true], 'ALFACE' => ['VERDURAS', true],
+            'ABÓBORA' => ['LEGUMES', true], 'CENOURA' => ['LEGUMES', true], 'CARNE' => ['CARNES', true], 'FRANGO' => ['AVES', true],
+            'PEIXE' => ['PEIXES', true], 'ARROZ' => ['CEREAIS', false], 'FEIJÃO' => ['GRAOS', false],
+            'FARINHA DE MANDIOCA' => ['INDUSTRIALIZADOS', false], 'LEITE' => ['LATICINIOS', false], 'QUEIJO' => ['LATICINIOS', true],
+        ];
+        foreach ($mapa as $chave => [$categoria, $perecivel]) {
+            if (str_starts_with($descricao, $chave)) {
+                return ['categoria_alimento' => $categoria, 'perecivel' => $perecivel];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Participantes e utilizações de um item de ata: o gerenciador e até 3 participantes com quantidade prevista,
+     * utilizações ao longo da vigência e, às vezes, adesões (caronas). Alguns itens passam de 100% de uso,
+     * para demonstrar o sinalizador de análise.
+     */
+    private function usoDaAta(int $ataItemId, int $ataId, int $gerenciador, array $unidades, float $quantidade, float $unitario, CarbonImmutable $inicio, CarbonImmutable $hoje): void
+    {
+        if ($quantidade <= 0 || $unitario <= 0) {
+            return;
+        }
+        $outras = array_values(array_filter($unidades, fn ($x) => $x['id'] !== $gerenciador));
+        $participantes = [[$gerenciador, 'GERENCIADOR']];
+        foreach ((array) array_rand($outras, mt_rand(1, 3)) as $k) {
+            $participantes[] = [$outras[$k]['id'], 'PARTICIPANTE'];
+        }
+        $pesos = array_map(fn () => mt_rand(1, 10), $participantes);
+        $somaPesos = array_sum($pesos);
+        $perfilUso = mt_rand(1, 100); // define se o item terá uso baixo, médio, alto ou acima do registrado
+        $fator = $perfilUso <= 20 ? mt_rand(0, 25) / 100 : ($perfilUso <= 70 ? mt_rand(30, 75) / 100 : ($perfilUso <= 94 ? mt_rand(80, 100) / 100 : mt_rand(105, 130) / 100));
+        $fim = $inicio->addYear()->min($hoje);
+        $dias = max(1, $inicio->diffInDays($fim));
+
+        foreach ($participantes as $i => [$unidade, $tipo]) {
+            $prevista = round($quantidade * $pesos[$i] / $somaPesos, 4);
+            DB::table('atas_participantes')->insert([
+                'ata_id' => $ataId, 'ata_item_id' => $ataItemId, 'unidade_compradora_id' => $unidade, 'tipo' => $tipo,
+                'quantidade_prevista' => $prevista, 'created_at' => $this->agora, 'updated_at' => $this->agora,
+            ]);
+            $this->utilizar($ataItemId, $unidade, $prevista * $fator, $unitario, $inicio, $dias);
+        }
+        // Adesão (carona) em parte das atas
+        if (mt_rand(1, 100) <= 15 && $outras) {
+            $aderente = $outras[array_rand($outras)]['id'];
+            $data = $inicio->addDays(mt_rand(0, (int) $dias));
+            DB::table('atas_participantes')->insert([
+                'ata_id' => $ataId, 'ata_item_id' => $ataItemId, 'unidade_compradora_id' => $aderente, 'tipo' => 'ADERENTE',
+                'quantidade_prevista' => null, 'data_adesao' => $data, 'created_at' => $this->agora, 'updated_at' => $this->agora,
+            ]);
+            $this->utilizar($ataItemId, $aderente, $quantidade * mt_rand(10, 40) / 100, $unitario, $data, 1);
+        }
+    }
+
+    private function utilizar(int $ataItemId, int $unidade, float $total, float $unitario, CarbonImmutable $inicio, float $dias): void
+    {
+        $partes = mt_rand(1, 3);
+        for ($k = 0; $k < $partes; $k++) {
+            $q = round($total / $partes, 4);
+            if ($q <= 0) {
+                continue;
+            }
+            DB::table('atas_utilizacoes')->insert([
+                'ata_item_id' => $ataItemId, 'unidade_compradora_id' => $unidade, 'quantidade' => $q, 'valor_total' => round($q * $unitario, 2),
+                'data' => $inicio->addDays(mt_rand(0, (int) $dias)),
+            ] + $this->base());
+        }
     }
 }

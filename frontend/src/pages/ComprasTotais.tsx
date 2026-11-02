@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -13,6 +13,11 @@ import { CriterioEconomia } from '@/components/compras/CriterioEconomia'
 import { Panorama } from '@/components/compras/Panorama'
 import { useDetalhes } from '@/components/detalhes/useDetalhes'
 
+const PainelGeografico = lazy(() => import('@/components/inteligencia/PainelGeografico').then((m) => ({ default: m.PainelGeografico })))
+const PainelNatureza = lazy(() => import('@/components/inteligencia/PainelNatureza').then((m) => ({ default: m.PainelNatureza })))
+const PainelSistematica = lazy(() => import('@/components/inteligencia/PainelSistematica').then((m) => ({ default: m.PainelSistematica })))
+const aguardando = <div className="flex h-40 items-center justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
+
 interface Graficos {
   evolucao_anual: Evolucao[]; por_orgao: Agrupamento[]; por_modalidade: Agrupamento[]; por_natureza: Agrupamento[]; por_municipio: Agrupamento[]
   por_fornecedor: Agrupamento[]; por_grupo_material: Agrupamento[]; por_grupo_porte: GrupoPorte[]; com_sem_disputa: Disputa[]; top_unidades: TopUnidade[]
@@ -21,9 +26,12 @@ interface Graficos {
 const INDICADORES = ['total_estimado', 'total_adjudicado', 'total_homologado', 'total_contratado', 'economia', 'percentual_economia', 'processos', 'itens_comprados', 'fornecedores', 'unidades_compradoras']
 const MONETARIOS = ['total_estimado', 'total_adjudicado', 'total_homologado', 'total_contratado', 'economia']
 
-type Aba = 'consolidada' | 'panorama'
+type Aba = 'consolidada' | 'panorama' | 'localidade' | 'natureza' | 'sistematica'
 
-/** Módulo 2 — Compras Totais (seção 7) e Panorama por unidade contratante (seção 8). */
+/**
+ * Módulo 2 — Compras Totais (seção 7), Panorama por unidade contratante (seção 8) e os painéis por
+ * localidade (seção 9), natureza/classe (seção 10) e sistemática de aquisição (seção 11).
+ */
 export function ComprasTotais() {
   const { estado } = useFiltros()
   const abrir = useDetalhes()
@@ -43,9 +51,17 @@ export function ComprasTotais() {
         aoMudarBase={setBase} aoMudarSemDisputa={setSemDisputa} />
       <FaixaIndicadores codigos={INDICADORES} monetarios={MONETARIOS} consulta={consulta} />
 
-      <Abas<Aba> abas={[{ id: 'consolidada', rotulo: 'Visão consolidada' }, { id: 'panorama', rotulo: 'Panorama por unidade contratante' }]} ativa={aba} aoMudar={setAba} />
+      <Abas<Aba> abas={[
+        { id: 'consolidada', rotulo: 'Visão consolidada' }, { id: 'panorama', rotulo: 'Panorama por unidade contratante' },
+        { id: 'localidade', rotulo: 'Por estado e região' }, { id: 'natureza', rotulo: 'Por natureza e classe' }, { id: 'sistematica', rotulo: 'Por sistemática' },
+      ]} ativa={aba} aoMudar={setAba} />
 
       {aba === 'panorama' && <Panorama base={base} incluirSemDisputa={semDisputa} />}
+      <Suspense fallback={aguardando}>
+        {aba === 'localidade' && <PainelGeografico />}
+        {aba === 'natureza' && <PainelNatureza />}
+        {aba === 'sistematica' && <PainelSistematica base={base} incluirSemDisputa={semDisputa} />}
+      </Suspense>
 
       {aba === 'consolidada' && (
         <>

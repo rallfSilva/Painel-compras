@@ -40,16 +40,17 @@ class ComprasTotaisService
     /**
      * Soma do valor contratado por uma dimensão, com os maiores e um grupo "Demais".
      * Cada linha traz o filtro global equivalente (filtro + chave) para o filtro cruzado na interface.
+     * Com $coluna, soma outra grandeza (ex.: valor adjudicado); a chave da resposta continua "contratado".
      */
-    public function agrupar(FiltrosAplicados $f, string $colId, string $colNome, string $filtro, string $prefixo, int $limite, ?\Closure $join = null): array
+    public function agrupar(FiltrosAplicados $f, string $colId, string $colNome, string $filtro, string $prefixo, int $limite, ?\Closure $join = null, string $coluna = 'pi.valor_total_contratado'): array
     {
         $q = $this->filtros->baseItens($f);
         if ($join) {
             $join($q);
         }
-        $linhas = $q->whereNotNull('pi.valor_total_contratado')
+        $linhas = $q->whereNotNull($coluna)
             ->groupBy($colId)
-            ->selectRaw("$colId AS id, MAX($colNome) AS nome, SUM(pi.valor_total_contratado) AS contratado, COUNT(DISTINCT p.id) AS processos")
+            ->selectRaw("$colId AS id, MAX($colNome) AS nome, SUM($coluna) AS contratado, COUNT(DISTINCT p.id) AS processos")
             ->orderByDesc('contratado')
             ->get();
 
