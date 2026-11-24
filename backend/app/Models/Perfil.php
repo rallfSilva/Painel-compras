@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Perfil extends Model
 {
+    /** Perfil dos usuários técnicos que representam outros sistemas na API de entrada. Não entra pela interface. */
+    public const SISTEMA = 'INTEGRACAO_SISTEMA';
+
     protected $table = 'perfis';
 
     protected $guarded = ['id'];

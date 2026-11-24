@@ -34,7 +34,7 @@ const STATUS: Record<Status, { rotulo: string; cor: 'neutro' | 'primario' | 'suc
   PENDENTE: { rotulo: 'Aguardando mapeamento', cor: 'neutro' }, VALIDADO: { rotulo: 'Validada', cor: 'primario' }, NA_FILA: { rotulo: 'Na fila', cor: 'alerta' },
   PROCESSANDO: { rotulo: 'Processando', cor: 'alerta' }, CONCLUIDO: { rotulo: 'Concluída', cor: 'sucesso' }, ERRO: { rotulo: 'Erro', cor: 'perigo' },
 }
-const ORIGENS: Record<string, string> = { IMPORTACAO: 'Arquivo', PNCP: 'PNCP', COMPRASGOV: 'Compras.gov.br', SISTEMA_ESTADUAL: 'Sistema estadual' }
+const ORIGENS: Record<string, string> = { IMPORTACAO: 'Arquivo', PNCP: 'PNCP', COMPRASGOV: 'Compras.gov.br', SISTEMA_ESTADUAL: 'Sistema estadual', NEXPLANGOV: 'NexPlanGov (API)' }
 const classeSelect = 'h-9 w-full rounded-md border border-input bg-surface px-2 text-sm'
 const mensagemErro = (e: unknown) => (e instanceof ApiError && e.erros ? Object.values(e.erros).flat().join(' ') : (e as Error)?.message ?? 'Erro.')
 const dataHora = (s: string | null) => (s ? new Date(s.replace(' ', 'T')).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—')

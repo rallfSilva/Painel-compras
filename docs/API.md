@@ -161,6 +161,10 @@ Todas aceitam os parâmetros de filtro globais.
 | `POST /integracoes/{codigo}/testar` | `integracoes.gerenciar` | Testa a conexão |
 | `POST /integracoes/{codigo}/sincronizar` | `integracoes.gerenciar` | `de`, `ate` (opcionais). Coloca na fila (HTTP 202) |
 
+## API de entrada para outros sistemas
+
+Rotas em `/integracao/v1` (tipos, envio de lotes, situação e inconsistências), autenticadas só pelo token de sistema gerado com `php artisan sic:token-integracao <SISTEMA>`. Detalhes, formato e ordem de envio em [INTEGRACAO.md](INTEGRACAO.md).
+
 ## Assistente de IA (Etapa 6)
 
 | Método e rota | Permissão | Descrição |

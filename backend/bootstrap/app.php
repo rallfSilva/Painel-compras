@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CabecalhosSeguranca;
 use App\Http\Middleware\ExigePermissao;
+use App\Http\Middleware\ExigeTokenIntegracao;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['permissao' => ExigePermissao::class]);
+        $middleware->alias(['permissao' => ExigePermissao::class, 'token.integracao' => ExigeTokenIntegracao::class]);
         $middleware->append(CabecalhosSeguranca::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Perfil;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,9 @@ class AuthController extends Controller
         ]);
 
         $user = User::with('perfil.permissoes')->where('email', $dados['email'])->first();
-        if (! $user || ! $user->ativo || ! Hash::check($dados['password'], $user->password)) {
+        // Usuário de sistema integrado (API de entrada) não entra pela interface.
+        $sistema = $user?->perfil?->codigo === Perfil::SISTEMA;
+        if (! $user || ! $user->ativo || $sistema || ! Hash::check($dados['password'], $user->password)) {
             $this->auditar(null, 'login_falhou', $request, ['email' => $dados['email']]);
             throw ValidationException::withMessages(['email' => 'E-mail ou senha inválidos.']);
         }
