@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FiltroController;
 use App\Http\Controllers\Api\FornecedorController;
 use App\Http\Controllers\Api\ImportacaoController;
+use App\Http\Controllers\Api\IntegracaoEntradaController;
 use App\Http\Controllers\Api\InteligenciaController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\OrgaoController;
@@ -17,6 +18,14 @@ use App\Http\Controllers\Api\ProcessoController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+// API de entrada para outros sistemas (NexPlanGov e afins). Só o token de integração do sistema acessa.
+Route::middleware(['auth:sanctum', 'token.integracao', 'permissao:integracao.enviar', 'throttle:integracao'])->prefix('integracao/v1')->group(function () {
+    Route::get('/tipos', [IntegracaoEntradaController::class, 'tipos']);
+    Route::post('/lotes', [IntegracaoEntradaController::class, 'receber']);
+    Route::get('/lotes/{id}', [IntegracaoEntradaController::class, 'lote'])->whereNumber('id');
+    Route::get('/lotes/{id}/erros', [IntegracaoEntradaController::class, 'erros'])->whereNumber('id');
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);

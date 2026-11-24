@@ -39,6 +39,20 @@ class Aditivos extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'contrato' => '010/2026',
+            'unidade' => '925001',
+            'numero' => '1',
+            'tipo' => 'Valor',
+            'valor' => '1.445,00',
+            'nova_vigencia_fim' => '',
+            'data_assinatura' => '15/08/2026',
+            'justificativa' => 'Acréscimo de 25% na quantidade (art. 125 da Lei 14.133/2021)',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper(($l['unidade'] ?? '').'|'.$l['contrato'].'|'.$l['numero']);

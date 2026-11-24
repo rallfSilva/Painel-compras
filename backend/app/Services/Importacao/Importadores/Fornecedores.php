@@ -39,6 +39,23 @@ class Fornecedores extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'documento' => '12.345.678/0001-95',
+            'razao_social' => 'Comercial Exemplo Ltda',
+            'nome_fantasia' => 'Exemplo Distribuidora',
+            'porte' => 'ME',
+            'municipio' => 'Boa Vista',
+            'uf' => 'RR',
+            'email' => 'contato@exemplo.com.br',
+            'telefone' => '(95) 3621-0000',
+            'endereco' => 'Av. das Flores, 100, Centro',
+            'cep' => '69301-000',
+            'cnae_principal' => '4761-0/03',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return $l['documento'];

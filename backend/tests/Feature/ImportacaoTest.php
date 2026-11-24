@@ -109,6 +109,49 @@ class ImportacaoTest extends TestCase
         $this->assertSame(2, $this->getJson('/api/importacoes')->assertOk()->json('total'));
     }
 
+    /** Modelo CSV como o frontend gera: cabeçalho com os rótulos e a segunda linha com o exemplo. */
+    private static function modeloCsv(array $tipo, array $linhasExtras = []): string
+    {
+        $esc = fn (string $s) => preg_match('/[";,\n]/', $s) ? '"'.str_replace('"', '""', $s).'"' : $s;
+        $linhas = [implode(';', array_map(fn ($c) => $esc($c['rotulo']), $tipo['campos'])), implode(';', array_map(fn ($c) => $esc($c['exemplo']), $tipo['campos']))];
+
+        return "\u{FEFF}".implode("\r\n", array_merge($linhas, $linhasExtras))."\r\n";
+    }
+
+    public function test_modelos_trazem_linha_de_exemplo_valida_e_ignorada_na_importacao(): void
+    {
+        $this->actingAs($this->usuario('OPERADOR_IMPORTACAO'), 'sanctum');
+        $tipos = collect($this->getJson('/api/importacoes/tipos')->assertOk()->json('tipos'))->keyBy('codigo');
+        $this->assertCount(12, $tipos);
+        foreach ($tipos as $codigo => $t) {
+            foreach ($t['campos'] as $c) {
+                $this->assertArrayHasKey('exemplo', $c);
+                if ($c['obrigatorio']) {
+                    $this->assertNotSame('', $c['exemplo'], "$codigo.{$c['nome']}: campo obrigatório sem exemplo");
+                }
+                Valor::converter($c['tipo'], $c['exemplo']); // o exemplo está no formato aceito (lança exceção se não)
+            }
+            // O modelo enviado sem alterações é reconhecido pelos rótulos e a linha de exemplo é ignorada.
+            $r = $this->enviar($codigo, UploadedFile::fake()->createWithContent("modelo-$codigo.csv", self::modeloCsv($t)));
+            $this->assertCount(count($t['campos']), $r['mapeamento'], "$codigo: nem todas as colunas do modelo foram reconhecidas");
+            $v = $this->postJson("/api/importacoes/{$r['id']}/validar", ['mapeamento' => $r['mapeamento']])->assertOk()->json('resumo');
+            $this->assertSame([0, 1], [$v['total'], $v['exemplos_ignorados']], $codigo);
+        }
+
+        // Com o exemplo alterado, a linha deixa de ser exemplo e é validada e gravada normalmente.
+        $c1 = self::cnpj('555555550001');
+        $t = $tipos['FORNECEDORES'];
+        $linha = implode(';', array_map(fn ($c) => match ($c['nome']) {
+            'documento' => $c1, 'razao_social' => 'Empresa Real', default => $c['exemplo']
+        }, $t['campos']));
+        $r = $this->enviar('FORNECEDORES', UploadedFile::fake()->createWithContent('fornecedores.csv', self::modeloCsv($t, [$linha])));
+        $v = $this->postJson("/api/importacoes/{$r['id']}/validar", ['mapeamento' => $r['mapeamento']])->assertOk()->json('resumo');
+        $this->assertSame([1, 1, 1], [$v['total'], $v['validos'], $v['exemplos_ignorados']]);
+        $this->postJson("/api/importacoes/{$r['id']}/confirmar")->assertOk();
+        $this->assertSame('Empresa Real', DB::table('fornecedores')->where('documento', $c1)->value('razao_social'));
+        $this->assertFalse(DB::table('fornecedores')->where('documento', '12345678000195')->exists());
+    }
+
     public function test_planilha_xlsx_de_processos_contratos_aditivos_e_financeiro(): void
     {
         $this->actingAs($this->usuario('ADMIN'), 'sanctum');

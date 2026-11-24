@@ -150,7 +150,7 @@ Todas aceitam os parâmetros de filtro globais.
 
 | Método e rota | Permissão | Descrição |
 |---|---|---|
-| `GET /importacoes/tipos` | `importacao.executar` | Os 12 tipos de importação com os campos (nome, rótulo, tipo, obrigatório) |
+| `GET /importacoes/tipos` | `importacao.executar` | Os 12 tipos de importação com os campos (nome, rótulo, tipo, obrigatório, exemplo). O `exemplo` preenche a segunda linha do modelo CSV; se essa linha for enviada sem alterações, é ignorada na validação (`resumo.exemplos_ignorados`) |
 | `POST /importacoes` | `importacao.executar` | Multipart `tipo` + `arquivo` (XLSX, XLS, CSV, JSON; até 20 MB). Devolve colunas, mapeamento sugerido e amostra |
 | `POST /importacoes/{id}/validar` | `importacao.executar` | `mapeamento` {coluna: campo}. Valida todas as linhas; `resumo` com total, válidos, inválidos, duplicados, novos, atualizações, erros por campo e amostra |
 | `POST /importacoes/{id}/confirmar` | `importacao.executar` | Coloca na fila. Situação: NA_FILA → PROCESSANDO → CONCLUIDO ou ERRO |
@@ -160,6 +160,10 @@ Todas aceitam os parâmetros de filtro globais.
 | `PUT /integracoes/{codigo}` | `integracoes.gerenciar` | `ativa`, `parametros` |
 | `POST /integracoes/{codigo}/testar` | `integracoes.gerenciar` | Testa a conexão |
 | `POST /integracoes/{codigo}/sincronizar` | `integracoes.gerenciar` | `de`, `ate` (opcionais). Coloca na fila (HTTP 202) |
+
+## API de entrada para outros sistemas
+
+Rotas em `/integracao/v1` (tipos, envio de lotes, situação e inconsistências), autenticadas só pelo token de sistema gerado com `php artisan sic:token-integracao <SISTEMA>`. Detalhes, formato e ordem de envio em [INTEGRACAO.md](INTEGRACAO.md).
 
 ## Assistente de IA (Etapa 6)
 

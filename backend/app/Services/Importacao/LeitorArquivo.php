@@ -44,7 +44,8 @@ final class LeitorArquivo
             $conteudo = mb_convert_encoding($conteudo, 'UTF-8', 'Windows-1252');
         }
         $primeira = strtok($conteudo, "\n") ?: '';
-        $sep = collect([';', ',', "\t", '|'])->sortByDesc(fn ($s) => substr_count($primeira, $s))->first();
+        $foraDeAspas = preg_replace('/"(?:[^"]|"")*"/', '', $primeira); // separadores dentro de aspas não contam
+        $sep = collect([';', ',', "\t", '|'])->sortByDesc(fn ($s) => substr_count($foraDeAspas, $s))->first();
 
         $h = fopen('php://temp', 'r+');
         fwrite($h, $conteudo);

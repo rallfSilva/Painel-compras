@@ -77,6 +77,50 @@ class Processos extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'numero_publicacao' => '90001/2026',
+            'identificador' => '11222333000181-1-000001/2026',
+            'numero_processo_sei' => '00000.000001/2026-01',
+            'numero_licitacao' => '001/2026',
+            'unidade' => '925001',
+            'objeto' => 'Registro de preços para aquisição de papel A4',
+            'data_abertura' => '10/03/2026',
+            'data_publicacao' => '24/02/2026',
+            'data_homologacao' => '25/03/2026',
+            'sistematica' => 'PREGAO',
+            'forma' => 'PREGAO_ELETRONICO',
+            'modalidade' => 'PREGAO_14133',
+            'amparo' => 'L14133_ART28_I',
+            'regime' => 'L14133',
+            'registro_precos' => 'Sim',
+            'eletronico' => 'Sim',
+            'situacao' => 'Homologado',
+            'valor_estimado' => '',
+            'valor_homologado' => '',
+            'quantidade_participantes' => '5',
+            'link_pncp' => 'https://pncp.gov.br/app/editais/11222333000181/2026/1',
+            'numero_item' => '1',
+            'lote' => '1',
+            'item_codigo' => '150587',
+            'descricao_item' => 'Papel A4, 75 g/m², resma com 500 folhas',
+            'unidade_medida' => 'RESMA',
+            'quantidade_estimada' => '1.000',
+            'valor_unitario_estimado' => '32,50',
+            'valor_total_estimado' => '32.500,00',
+            'quantidade_adjudicada' => '1.000',
+            'valor_unitario_adjudicado' => '28,90',
+            'valor_total_adjudicado' => '28.900,00',
+            'valor_total_homologado' => '28.900,00',
+            'valor_total_contratado' => '',
+            'fornecedor_documento' => '12.345.678/0001-95',
+            'fornecedor_nome' => 'Comercial Exemplo Ltda',
+            'situacao_item' => 'Homologado',
+            'beneficio_mpe' => 'Exclusivo',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return $l['numero_publicacao'].'|'.($l['numero_item'] !== null ? (int) $l['numero_item'] : '-');

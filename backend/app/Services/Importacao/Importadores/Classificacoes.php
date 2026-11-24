@@ -43,6 +43,16 @@ class Classificacoes extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'tabela' => 'SUBELEMENTO_DESPESA',
+            'codigo' => '3.3.90.30.16',
+            'nome' => 'Material de expediente',
+            'codigo_pai' => '3.3.90.30',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return $l['tabela'].'|'.$l['codigo'];

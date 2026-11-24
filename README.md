@@ -12,6 +12,7 @@ Plataforma de Business Intelligence de compras públicas da Secretaria de Estado
 - [Arquitetura, modelo de dados e plano](docs/ARQUITETURA.md)
 - [Instalação no XAMPP](docs/INSTALACAO_XAMPP.md)
 - [API REST](docs/API.md)
+- [API de entrada para outros sistemas (NexPlanGov)](docs/INTEGRACAO.md)
 
 ## Início rápido (desenvolvimento)
 

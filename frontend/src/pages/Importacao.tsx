@@ -17,9 +17,9 @@ import { Erro, MiniTabela, Secao } from '@/components/detalhes/Partes'
 import { formatarNumero } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-interface Campo { nome: string; rotulo: string; tipo: string; obrigatorio: boolean }
+interface Campo { nome: string; rotulo: string; tipo: string; obrigatorio: boolean; exemplo?: string }
 interface Tipo { codigo: string; titulo: string; descricao: string; campos: Campo[] }
-interface Resumo { total: number; validos: number; invalidos: number; duplicados: number; novos: number; atualizacoes: number; erros_por_campo: Record<string, number>; amostra: Record<string, unknown>[] }
+interface Resumo { total: number; validos: number; invalidos: number; duplicados: number; novos: number; atualizacoes: number; exemplos_ignorados?: number; erros_por_campo: Record<string, number>; amostra: Record<string, unknown>[] }
 interface Importacao {
   id: number; tipo: string; tipo_titulo: string; arquivo: string; formato: string | null; tamanho: number | null; origem: string; usuario: string | null
   status: Status; total_registros: number; total_importados: number; total_rejeitados: number; total_duplicados: number
@@ -34,14 +34,17 @@ const STATUS: Record<Status, { rotulo: string; cor: 'neutro' | 'primario' | 'suc
   PENDENTE: { rotulo: 'Aguardando mapeamento', cor: 'neutro' }, VALIDADO: { rotulo: 'Validada', cor: 'primario' }, NA_FILA: { rotulo: 'Na fila', cor: 'alerta' },
   PROCESSANDO: { rotulo: 'Processando', cor: 'alerta' }, CONCLUIDO: { rotulo: 'Concluída', cor: 'sucesso' }, ERRO: { rotulo: 'Erro', cor: 'perigo' },
 }
-const ORIGENS: Record<string, string> = { IMPORTACAO: 'Arquivo', PNCP: 'PNCP', COMPRASGOV: 'Compras.gov.br', SISTEMA_ESTADUAL: 'Sistema estadual' }
+const ORIGENS: Record<string, string> = { IMPORTACAO: 'Arquivo', PNCP: 'PNCP', COMPRASGOV: 'Compras.gov.br', SISTEMA_ESTADUAL: 'Sistema estadual', NEXPLANGOV: 'NexPlanGov (API)' }
 const classeSelect = 'h-9 w-full rounded-md border border-input bg-surface px-2 text-sm'
 const mensagemErro = (e: unknown) => (e instanceof ApiError && e.erros ? Object.values(e.erros).flat().join(' ') : (e as Error)?.message ?? 'Erro.')
 const dataHora = (s: string | null) => (s ? new Date(s.replace(' ', 'T')).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—')
 
+/** Modelo CSV: linha 1 com os nomes das colunas e linha 2 com um exemplo fictício preenchido (ignorado se enviado sem alterações). */
 function baixarModelo(t: Tipo) {
-  const esc = (s: string) => (/[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s)
-  const blob = new Blob(['﻿' + t.campos.map((c) => esc(c.rotulo)).join(';') + '\r\n'], { type: 'text/csv;charset=utf-8' })
+  const esc = (s: string) => (/[";,\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s)
+  const linhas = [t.campos.map((c) => esc(c.rotulo)).join(';')]
+  if (t.campos.some((c) => c.exemplo)) linhas.push(t.campos.map((c) => esc(c.exemplo ?? '')).join(';'))
+  const blob = new Blob(['﻿' + linhas.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = `modelo-${t.codigo.toLowerCase()}.csv`
@@ -175,6 +178,7 @@ function NovaImportacao({ id, aoMudarId, aoVerHistorico }: { id: number | null; 
                   {defTipo.campos.map((c) => <li key={c.nome}>{c.rotulo}{c.obrigatorio && <span className="text-danger"> *</span>}</li>)}
                 </ul>
                 <Button variant="outline" size="sm" onClick={() => baixarModelo(defTipo)}><Download /> Baixar modelo CSV</Button>
+                <p className="mt-2 text-muted-foreground">A segunda linha do modelo traz um exemplo fictício preenchido para orientar o formato. Substitua-o pelos seus dados; se for enviado sem alterações, ele é ignorado na importação.</p>
               </>
             ) : (
               <ol className="list-decimal space-y-1.5 pl-4 text-muted-foreground">
@@ -291,6 +295,7 @@ function ResumoValidacao({ imp, tipo }: { imp: Importacao; tipo?: Tipo }) {
         { rotulo: 'Registros novos', valor: r.novos, tipo: 'numero' },
         { rotulo: 'Atualizações', valor: r.atualizacoes, tipo: 'numero', dica: 'Já existem no sistema e serão atualizados (não duplicados).' },
       ]} />
+      {(r.exemplos_ignorados ?? 0) > 0 && <Nota className="mt-4">A linha de exemplo do modelo CSV foi enviada sem alterações e foi ignorada (não entra na contagem nem é gravada).</Nota>}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Secao titulo="Pré-visualização das linhas válidas" className="rounded-md border">
           <MiniTabela vazio="Nenhuma linha válida." cabecalho={['Linha', ...colunasAmostra.map((c) => c.rotulo)]}

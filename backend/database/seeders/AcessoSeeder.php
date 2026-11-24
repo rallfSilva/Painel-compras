@@ -25,12 +25,14 @@ class AcessoSeeder extends Seeder
             'logs.ver' => 'Consultar logs de auditoria',
             'ia.consultar' => 'Usar o assistente de IA',
             'dados_pessoais.ver' => 'Ver CPF completo de fornecedor pessoa física',
+            'integracao.enviar' => 'Enviar dados pela API de entrada (só para sistemas integrados)',
         ];
         foreach ($permissoes as $codigo => $descricao) {
             Permissao::updateOrCreate(['codigo' => $codigo], ['descricao' => $descricao]);
         }
 
-        $todas = array_keys($permissoes);
+        // A permissão de envio pela API é exclusiva do perfil de sistema: nenhum perfil de pessoa a recebe.
+        $todas = array_values(array_diff(array_keys($permissoes), ['integracao.enviar']));
         $leitura = ['dashboard.ver', 'registros.ver', 'relatorios.exportar'];
         $perfis = [
             ['ADMIN', 'Administrador Geral', false, $todas],
@@ -40,6 +42,7 @@ class AcessoSeeder extends Seeder
             ['GESTOR_ORGAO', 'Gestor de Órgão', true, [...$leitura, 'ia.consultar']],
             ['CONSULTA_GERENCIAL', 'Consulta Gerencial', false, $leitura],
             ['CONSULTA_PUBLICA', 'Consulta Pública', false, ['dashboard.ver']],
+            [Perfil::SISTEMA, 'Sistema integrado (API)', false, ['integracao.enviar']],
         ];
         foreach ($perfis as [$codigo, $nome, $restrito, $perms]) {
             $perfil = Perfil::updateOrCreate(['codigo' => $codigo], ['nome' => $nome, 'restrito_por_orgao' => $restrito]);

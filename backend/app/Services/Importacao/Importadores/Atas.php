@@ -47,6 +47,27 @@ class Atas extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'numero' => '005/2026',
+            'identificador' => '11222333000181-1-000001/2026-000001',
+            'orgao_gerenciador' => 'SEEX',
+            'numero_publicacao' => '90001/2026',
+            'objeto' => 'Registro de preços para aquisição de papel A4',
+            'data_assinatura' => '01/04/2026',
+            'vigencia_inicio' => '01/04/2026',
+            'vigencia_fim' => '31/03/2027',
+            'situacao' => 'Vigente',
+            'item_codigo' => '150587',
+            'fornecedor_documento' => '12.345.678/0001-95',
+            'fornecedor_nome' => 'Comercial Exemplo Ltda',
+            'quantidade_registrada' => '1.000',
+            'valor_unitario_estimado' => '32,50',
+            'valor_unitario_registrado' => '28,90',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper($l['orgao_gerenciador'].'|'.$l['numero'].'|'.$l['item_codigo'].'|'.$l['fornecedor_documento']);

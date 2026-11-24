@@ -37,6 +37,20 @@ class Catalogo extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'codigo' => '150587',
+            'descricao' => 'Papel A4, 75 g/m², branco, resma com 500 folhas',
+            'tipo' => 'MATERIAL',
+            'classe' => 'Material de expediente',
+            'unidade_medida' => 'RESMA',
+            'subelemento' => '3.3.90.30.16',
+            'nome_resumido' => 'Papel A4',
+            'especificacao' => 'Formato 210 x 297 mm, alcalino, certificação ambiental',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper($l['codigo']);
