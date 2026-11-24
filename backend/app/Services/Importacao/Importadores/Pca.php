@@ -57,6 +57,34 @@ class Pca extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'exercicio' => '2026',
+            'orgao' => 'SEEX',
+            'numero_demanda' => '15',
+            'objeto' => 'Aquisição de papel A4 para as unidades da secretaria',
+            'valor_estimado' => '32.500,00',
+            'unidade_requisitante' => 'SEEX - Departamento de Compras',
+            'codigo_contratacao' => 'PCA-2026-015',
+            'descricao_necessidade' => 'Reposição anual do material de expediente',
+            'categoria' => 'Material',
+            'classe' => 'Material de expediente',
+            'grupo' => 'Material de escritório',
+            'quantidade_estimada' => '1.000',
+            'data_pretendida' => '01/03/2026',
+            'prioridade' => 'Alta',
+            'situacao_planejamento' => 'Aprovada',
+            'responsavel' => 'Maria Exemplo da Silva',
+            'processo_sei' => '00000.000001/2026-01',
+            'situacao_execucao' => 'Em andamento',
+            'numero_publicacao' => '90001/2026',
+            'situacao_pca' => 'PUBLICADO',
+            'data_aprovacao' => '15/12/2025',
+            'link_pncp' => 'https://pncp.gov.br/app/pca/11222333000181/2026',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper($l['exercicio'].'|'.$l['orgao'].'|'.$l['numero_demanda']);

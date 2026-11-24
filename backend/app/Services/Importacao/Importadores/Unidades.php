@@ -41,6 +41,23 @@ class Unidades extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'unidade_superior' => 'Poder Executivo',
+            'unidade_superior_codigo' => 'PE',
+            'orgao_codigo' => '21101',
+            'orgao_sigla' => 'SEEX',
+            'orgao_nome' => 'Secretaria de Estado de Exemplo',
+            'orgao_tipo' => 'Secretaria',
+            'orgao_cnpj' => '11.222.333/0001-81',
+            'unidade_codigo' => '211011',
+            'uasg' => '925001',
+            'unidade_nome' => 'SEEX - Departamento de Compras',
+            'municipio' => 'Boa Vista',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper(($l['orgao_sigla'] ?? $l['orgao_nome']).'|'.($l['unidade_codigo'] ?? $l['unidade_nome']));

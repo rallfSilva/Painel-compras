@@ -48,6 +48,29 @@ class Contratos extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'numero' => '010/2026',
+            'identificador' => '11222333000181-2-000010/2026',
+            'unidade' => '925001',
+            'fornecedor_documento' => '12.345.678/0001-95',
+            'fornecedor_nome' => 'Comercial Exemplo Ltda',
+            'numero_publicacao' => '90001/2026',
+            'ata' => '005/2026',
+            'objeto' => 'Fornecimento de papel A4',
+            'valor_inicial' => '5.780,00',
+            'valor_atualizado' => '7.225,00',
+            'data_assinatura' => '10/04/2026',
+            'vigencia_inicio' => '10/04/2026',
+            'vigencia_fim' => '09/04/2027',
+            'situacao' => 'Vigente',
+            'gestor' => 'Maria Exemplo da Silva',
+            'fiscal' => 'João Exemplo Souza',
+            'link_pncp' => 'https://pncp.gov.br/app/contratos/11222333000181/2026/10',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper($l['unidade'].'|'.$l['numero']);

@@ -39,6 +39,19 @@ class ExecucaoFinanceira extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'tipo' => 'Empenho',
+            'documento' => '2026NE000123',
+            'data' => '12/04/2026',
+            'valor' => '5.780,00',
+            'contrato' => '010/2026',
+            'unidade' => '925001',
+            'processo' => '90001/2026',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return self::opcao($l['tipo'], self::TIPOS).'|'.mb_strtoupper($l['documento']);

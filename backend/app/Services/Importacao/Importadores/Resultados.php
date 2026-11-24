@@ -44,6 +44,26 @@ class Resultados extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'numero_publicacao' => '90001/2026',
+            'numero_item' => '1',
+            'fornecedor_documento' => '12.345.678/0001-95',
+            'fornecedor_nome' => 'Comercial Exemplo Ltda',
+            'vencedor' => 'Sim',
+            'valor_proposta' => '28,90',
+            'habilitado' => 'Sim',
+            'quantidade_adjudicada' => '1.000',
+            'valor_unitario_adjudicado' => '28,90',
+            'valor_total_adjudicado' => '28.900,00',
+            'valor_total_homologado' => '28.900,00',
+            'valor_total_contratado' => '',
+            'data_adjudicacao' => '20/03/2026',
+            'situacao' => 'Homologado',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return $l['numero_publicacao'].'|'.(int) $l['numero_item'].'|'.$l['fornecedor_documento'];

@@ -22,6 +22,18 @@ abstract class Importador
      */
     abstract public function campos(): array;
 
+    /**
+     * Linha de exemplo do modelo CSV (segunda linha), com dados fictícios coerentes entre os tipos:
+     * o mesmo órgão, fornecedor, processo, ata e contrato aparecem em todos os modelos. Se for enviada
+     * sem alterações, a linha é ignorada na importação (ver ImportacaoService::analisar).
+     *
+     * @return array<string, string> campo => valor como o usuário digitaria na planilha
+     */
+    public function exemplo(): array
+    {
+        return [];
+    }
+
     /** Chave que identifica o mesmo registro dentro do arquivo (duplicidade). */
     abstract public function chave(array $l): ?string;
 

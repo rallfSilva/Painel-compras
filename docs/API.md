@@ -150,7 +150,7 @@ Todas aceitam os parâmetros de filtro globais.
 
 | Método e rota | Permissão | Descrição |
 |---|---|---|
-| `GET /importacoes/tipos` | `importacao.executar` | Os 12 tipos de importação com os campos (nome, rótulo, tipo, obrigatório) |
+| `GET /importacoes/tipos` | `importacao.executar` | Os 12 tipos de importação com os campos (nome, rótulo, tipo, obrigatório, exemplo). O `exemplo` preenche a segunda linha do modelo CSV; se essa linha for enviada sem alterações, é ignorada na validação (`resumo.exemplos_ignorados`) |
 | `POST /importacoes` | `importacao.executar` | Multipart `tipo` + `arquivo` (XLSX, XLS, CSV, JSON; até 20 MB). Devolve colunas, mapeamento sugerido e amostra |
 | `POST /importacoes/{id}/validar` | `importacao.executar` | `mapeamento` {coluna: campo}. Valida todas as linhas; `resumo` com total, válidos, inválidos, duplicados, novos, atualizações, erros por campo e amostra |
 | `POST /importacoes/{id}/confirmar` | `importacao.executar` | Coloca na fila. Situação: NA_FILA → PROCESSANDO → CONCLUIDO ou ERRO |

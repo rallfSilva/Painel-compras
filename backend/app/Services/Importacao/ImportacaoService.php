@@ -31,7 +31,9 @@ class ImportacaoService
     {
         return collect(RegistroImportadores::todos())->map(fn (Importador $i) => [
             'codigo' => $i->codigo(), 'titulo' => $i->titulo(), 'descricao' => $i->descricao(),
-            'campos' => collect($i->campos())->map(fn ($d, $n) => ['nome' => $n, 'rotulo' => $d['rotulo'], 'tipo' => $d['tipo'], 'obrigatorio' => $d['obrigatorio'] ?? false])->values()->all(),
+            'campos' => collect($i->campos())->map(fn ($d, $n) => [
+                'nome' => $n, 'rotulo' => $d['rotulo'], 'tipo' => $d['tipo'], 'obrigatorio' => $d['obrigatorio'] ?? false, 'exemplo' => $i->exemplo()[$n] ?? '',
+            ])->values()->all(),
         ])->values()->all();
     }
 
@@ -96,7 +98,7 @@ class ImportacaoService
         $a = $this->analisar($importador, $linhas, $mapeamento, new Contexto($id, $imp->origem, $imp->user_id));
         $this->gravarErros($id, $a['erros']);
         DB::table('importacoes')->where('id', $id)->update([
-            'status' => 'VALIDADO', 'total_registros' => count($linhas), 'total_rejeitados' => $a['resumo']['invalidos'],
+            'status' => 'VALIDADO', 'total_registros' => $a['resumo']['total'], 'total_rejeitados' => $a['resumo']['invalidos'],
             'total_duplicados' => $a['resumo']['duplicados'], 'resumo' => json_encode($a['resumo'], JSON_UNESCAPED_UNICODE), 'mensagem' => null, 'updated_at' => now(),
         ]);
 
@@ -130,6 +132,7 @@ class ImportacaoService
 
     /**
      * Converte e valida cada linha. Linha do arquivo = posição + 2 (a linha 1 é o cabeçalho).
+     * A linha de exemplo do modelo CSV, se enviada sem alterações, é ignorada (não conta no total).
      *
      * @return array{validas: array<int, array>, erros: list<array>, resumo: array}
      */
@@ -140,7 +143,8 @@ class ImportacaoService
         $validas = [];
         $erros = [];
         $vistas = [];
-        $r = ['total' => count($linhas), 'validos' => 0, 'invalidos' => 0, 'duplicados' => 0, 'novos' => 0, 'atualizacoes' => 0, 'erros_por_campo' => [], 'amostra' => []];
+        $exemplo = self::exemploConvertido($imp);
+        $r = ['total' => count($linhas), 'validos' => 0, 'invalidos' => 0, 'duplicados' => 0, 'novos' => 0, 'atualizacoes' => 0, 'exemplos_ignorados' => 0, 'erros_por_campo' => [], 'amostra' => []];
 
         foreach ($linhas as $i => $bruta) {
             $n = $i + 2;
@@ -152,6 +156,12 @@ class ImportacaoService
                 } catch (\InvalidArgumentException $x) {
                     $e[] = [$campo, $campos[$campo]['rotulo'].': '.$x->getMessage().' ("'.mb_substr((string) $bruta[$col], 0, 60).'")'];
                 }
+            }
+            if ($e === [] && self::ehExemplo($l, $mapeamento, $exemplo)) {
+                $r['exemplos_ignorados']++;
+                $r['total']--;
+
+                continue;
             }
             foreach ($campos as $nome => $d) {
                 if (($d['obrigatorio'] ?? false) && $l[$nome] === null && ! collect($e)->contains(fn ($x) => $x[0] === $nome)) {
@@ -189,6 +199,42 @@ class ImportacaoService
         arsort($r['erros_por_campo']);
 
         return ['validas' => $validas, 'erros' => $erros, 'resumo' => $r];
+    }
+
+    /** @return array<string, mixed> campo => valor do exemplo já convertido (como uma linha lida do arquivo) */
+    private static function exemploConvertido(Importador $imp): array
+    {
+        $campos = $imp->campos();
+        $r = [];
+        foreach ($imp->exemplo() as $campo => $v) {
+            try {
+                $r[$campo] = isset($campos[$campo]) ? Valor::converter($campos[$campo]['tipo'], $v) : null;
+            } catch (\InvalidArgumentException) {
+                return [];
+            }
+        }
+
+        return $r;
+    }
+
+    /** A linha é a de exemplo do modelo: todas as colunas ligadas têm o valor do exemplo (e ao menos uma está preenchida). */
+    private static function ehExemplo(array $l, array $mapeamento, array $exemplo): bool
+    {
+        if ($exemplo === [] || $mapeamento === []) {
+            return false;
+        }
+        $preenchida = false;
+        foreach ($mapeamento as $campo) {
+            $a = $l[$campo] ?? null;
+            $b = $exemplo[$campo] ?? null;
+            $igual = is_float($a) && is_float($b) ? abs($a - $b) < 0.005 : $a === $b;
+            if (! $igual) {
+                return false;
+            }
+            $preenchida = $preenchida || $a !== null;
+        }
+
+        return $preenchida;
     }
 
     private function gravarErros(int $id, array $erros): void
@@ -254,11 +300,11 @@ class ImportacaoService
             $this->agregacao->recalcular();
             $this->gravarErros($id, $erros);
             DB::table('importacoes')->where('id', $id)->update([
-                'status' => 'CONCLUIDO', 'total_registros' => count($linhas), 'total_importados' => $importados,
-                'total_rejeitados' => count($linhas) - $importados, 'total_duplicados' => $a['resumo']['duplicados'],
+                'status' => 'CONCLUIDO', 'total_registros' => $a['resumo']['total'], 'total_importados' => $importados,
+                'total_rejeitados' => $a['resumo']['total'] - $importados, 'total_duplicados' => $a['resumo']['duplicados'],
                 'resumo' => json_encode($a['resumo'], JSON_UNESCAPED_UNICODE), 'concluida_em' => now(), 'updated_at' => now(),
             ]);
-            $this->auditar($imp->user_id, 'importacao.concluir', $id, ['tipo' => $imp->tipo, 'importados' => $importados, 'rejeitados' => count($linhas) - $importados]);
+            $this->auditar($imp->user_id, 'importacao.concluir', $id, ['tipo' => $imp->tipo, 'importados' => $importados, 'rejeitados' => $a['resumo']['total'] - $importados]);
         } catch (\Throwable $e) {
             report($e);
             DB::table('importacoes')->where('id', $id)->update(['status' => 'ERRO', 'mensagem' => mb_substr($e->getMessage(), 0, 1000), 'concluida_em' => now(), 'updated_at' => now()]);

@@ -39,6 +39,21 @@ class AtasUtilizacoes extends Importador
         ];
     }
 
+    public function exemplo(): array
+    {
+        return [
+            'ata' => '005/2026',
+            'orgao_gerenciador' => 'SEEX',
+            'item_codigo' => '150587',
+            'fornecedor_documento' => '12.345.678/0001-95',
+            'unidade' => '925001',
+            'quantidade' => '200',
+            'valor_total' => '5.780,00',
+            'data' => '15/04/2026',
+            'contrato' => '010/2026',
+        ];
+    }
+
     public function chave(array $l): ?string
     {
         return mb_strtoupper(implode('|', [$l['orgao_gerenciador'], $l['ata'], $l['item_codigo'], $l['unidade'], $l['data'], $l['quantidade'], $l['contrato']]));
